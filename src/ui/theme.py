@@ -158,6 +158,8 @@ _BASE_CSS = """
 .cm-job-snippet { font-size: 14px; color: var(--cm-color-text-primary); line-height: 1.55; margin: var(--cm-space-md) 0; }
 .cm-job-foot { display: flex; justify-content: space-between; align-items: center; gap: var(--cm-space-md); flex-wrap: wrap;
   border-top: 1px solid var(--cm-color-border); padding-top: var(--cm-space-md); }
+.cm-job-also { font-size: 13px; color: var(--cm-color-text-secondary); margin: calc(-1 * var(--cm-space-sm)) 0 var(--cm-space-md) 0; }
+.cm-job-also a { color: var(--cm-color-link); }
 .cm-job-source { font-size: 13px; color: var(--cm-color-text-secondary); font-weight: 500; }
 .cm-job-links { display: flex; gap: var(--cm-space-sm); flex-wrap: wrap; }
 .cm-link-btn {

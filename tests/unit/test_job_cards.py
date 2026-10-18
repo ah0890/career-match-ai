@@ -74,3 +74,18 @@ def test_provider_badges_distinguish_live_cached_failed():
 def test_salary_period_shown_when_stated():
     html = job_card_html(_job(salary_min=40, salary_max=60, salary_currency="USD", salary_period="hourly"))
     assert "USD 40 – 60 per hour" in html
+
+
+def test_card_shows_freshness_label_with_text():
+    html = job_card_html(_job(posted_at=datetime.now(timezone.utc) - timedelta(days=2)))
+    assert ">Recent<" in html and "not confirmed" in html
+    assert "Date not provided" in job_card_html(_job(posted_at=None))
+
+
+def test_card_lists_other_sources_for_merged_jobs():
+    from src.jobs.models import SourceLink
+
+    html = job_card_html(_job(also_listed_on=(SourceLink(provider_id="jobicy", source_name="Jobicy",
+                                                          listing_url="https://jobicy.com/jobs/1"),
+                                               SourceLink(provider_id="x", source_name="<X>"))))
+    assert 'Also listed on <a href="https://jobicy.com/jobs/1"' in html and "&lt;X&gt;" in html

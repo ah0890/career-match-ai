@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from html import escape
 
+from src.jobs.freshness import assess
 from src.jobs.models import EmploymentType, JobPosting, WorkArrangement
 from src.providers.base import ProviderResult
 from src.ui.components import badge_html
@@ -61,11 +62,23 @@ def _source_html(job: JobPosting) -> str:
     return f'<span class="cm-job-source">Source: {name}</span>'
 
 
+def _also_listed_html(job: JobPosting) -> str:
+    if not job.also_listed_on:
+        return ""
+    parts = []
+    for link in job.also_listed_on:
+        label = escape(link.source_name)
+        parts.append(f'<a href="{escape(link.listing_url, quote=True)}" target="_blank" rel="noopener">{label}</a>'
+                     if link.listing_url else label)
+    return f'<div class="cm-job-also">Also listed on {", ".join(parts)}</div>'
+
 
 def job_card_html(job: JobPosting, snippet_chars: int = 260) -> str:
     meta = " · ".join(escape(x) for x in (job.company or "Company not provided", job.location) if x)
-    badges = [badge_html(_ARRANGEMENT_LABELS[job.work_arrangement], "info")] \
-        if job.work_arrangement in _ARRANGEMENT_LABELS else []
+    fresh = assess(job)
+    badges = [f'<span title="{escape(fresh.explanation, quote=True)}">{badge_html(fresh.label, fresh.tone)}</span>']
+    if job.work_arrangement in _ARRANGEMENT_LABELS:
+        badges.append(badge_html(_ARRANGEMENT_LABELS[job.work_arrangement], "info"))
     if job.employment_type in _EMPLOYMENT_LABELS:
         badges.append(badge_html(_EMPLOYMENT_LABELS[job.employment_type], "neutral"))
     salary = _salary(job)
@@ -86,7 +99,7 @@ def job_card_html(job: JobPosting, snippet_chars: int = 260) -> str:
         f'<span class="cm-job-posted">{escape(posted_label(job.posted_at))}</span></div>'
         f'<div class="cm-job-meta">{meta}</div>'
         f'<div class="cm-badge-row">{"".join(badges)}</div>'
-        f'<p class="cm-job-snippet">{escape(snippet)}</p>'
+        f'<p class="cm-job-snippet">{escape(snippet)}</p>{_also_listed_html(job)}'
         f'<div class="cm-job-foot">{_source_html(job)}'
         f'<div class="cm-job-links">{"".join(links)}</div></div>'
         f"</article>"

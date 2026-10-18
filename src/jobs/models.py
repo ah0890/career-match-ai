@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class WorkArrangement(str, Enum):
@@ -47,6 +47,17 @@ def safe_url(value: object) -> str | None:
     if parts.username or parts.password:  # credentials embedded in URLs are a phishing pattern
         return None
     return candidate
+
+
+class SourceLink(BaseModel):
+    """Another source that lists the same vacancy."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider_id: str
+    source_name: str
+    listing_url: str | None = None
+    source_url: str | None = None
 
 
 class SearchQuery(BaseModel):
@@ -98,6 +109,7 @@ class JobPosting(BaseModel):
     salary_text: str | None = None  # provider's free-text salary when not structured
     salary_is_estimate: bool = False
     posted_at: datetime | None = None
+    expires_at: datetime | None = None  # only when the source states an expiry date
     description: str = ""
     tags: tuple[str, ...] = ()
     category: str | None = None
@@ -105,6 +117,19 @@ class JobPosting(BaseModel):
     listing_url: str | None = None  # the original listing on the source site
     apply_url: str | None = None  # only when the provider supplies an explicit application link
     retrieved_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    also_listed_on: tuple[SourceLink, ...] = ()  # filled by deduplication
+
+    @model_validator(mode="after")
+    def _distinct_links(self) -> "JobPosting":
+        # A listing page is never presented as a separate application link.
+        if self.apply_url and self.listing_url and self.apply_url.rstrip("/") == self.listing_url.rstrip("/"):
+            object.__setattr__(self, "apply_url", None)
+        return self
+
+    @property
+    def key(self) -> str:
+        """Stable identifier for this posting within its source."""
+        return f"{self.provider_id}:{self.source_job_id or self.listing_url or self.title}"
 
     @field_validator("listing_url", "apply_url", "source_url", mode="before")
     @classmethod

@@ -63,6 +63,57 @@ def parse_datetime(value: object) -> datetime | None:
     return dt
 
 
+def parse_expiry(value: object) -> datetime | None:
+    """Like parse_datetime, but future dates are expected and allowed."""
+    try:
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0:
+            return datetime.fromtimestamp(float(value), tz=timezone.utc)
+        if isinstance(value, str) and value.strip():
+            dt = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except (ValueError, OverflowError, OSError):
+        return None
+    return None
+
+
+_COMPANY_SUFFIXES = re.compile(
+    r"\b(incorporated|inc|ltd|limited|llc|llp|plc|gmbh|ag|sa|sas|bv|nv|pty|pvt|private|co|corp|corporation|"
+    r"company|group|holdings|the)\b\.?", re.I)
+_TITLE_NOISE = re.compile(
+    r"\((?:remote|hybrid|on-?site|m/f/d|f/m/d|m/w/d|all genders)\)"
+    r"|^\s*(?:remote|hybrid)\s*[-–:|]"
+    r"|[-–:|]\s*(?:remote|hybrid|on-?site)\s*$", re.I)
+
+
+def normalize_company(name: str | None) -> str:
+    if not name:
+        return ""
+    name = _COMPANY_SUFFIXES.sub(" ", name.lower())
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", name).split())
+
+
+def normalize_title(title: str) -> str:
+    title = _TITLE_NOISE.sub(" ", title.lower())
+    title = re.sub(r"\bsr\b\.?", "senior", title)
+    title = re.sub(r"\bjr\b\.?", "junior", title)
+    return " ".join(re.sub(r"[^a-z0-9+#]+", " ", title).split())
+
+
+_TRACKING_PARAMS = re.compile(r"^(utm_|ref$|referrer$|source$|src$|fbclid$|gclid$)", re.I)
+
+
+def canonical_url(url: str | None) -> str | None:
+    """Comparable form of a URL: lowercase host, no tracking parameters, fragment or trailing slash."""
+    if not url:
+        return None
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+    parts = urlsplit(url)
+    query = urlencode(sorted((k, v) for k, v in parse_qsl(parts.query) if not _TRACKING_PARAMS.match(k)))
+    host = (parts.hostname or "").lower().removeprefix("www.")
+    return urlunsplit(("https", host, parts.path.rstrip("/"), query, ""))
+
+
 _EMPLOYMENT_MAP = {
     "full_time": EmploymentType.FULL_TIME, "full-time": EmploymentType.FULL_TIME, "fulltime": EmploymentType.FULL_TIME,
     "full time": EmploymentType.FULL_TIME,

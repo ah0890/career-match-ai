@@ -141,13 +141,15 @@ def filters_not_applied(outcome: SearchOutcome) -> list[str]:
 
 
 def _render_outcome(outcome: SearchOutcome) -> None:
-    jobs = outcome.jobs
+    jobs = list(outcome.unique_jobs)
     ok = outcome.succeeded
     q = outcome.query
+    merged = (f" {outcome.duplicates_merged} duplicate listing(s) across sources were merged."
+              if outcome.duplicates_merged else "")
     section_header(
         f"{len(jobs)} job{'s' if len(jobs) != 1 else ''} found",
         f"Searched {len(ok)} of {len(outcome.results)} source(s) for “{q.keywords}”"
-        + (f" in {q.location}" if q.location else "") + ".",
+        + (f" in {q.location}" if q.location else "") + "." + merged,
     )
     rows = []
     for r in outcome.results:
@@ -176,6 +178,9 @@ def _render_outcome(outcome: SearchOutcome) -> None:
         empty_state("No matching jobs", "No source returned jobs for this search. Try broader keywords, a "
                     "different location or fewer filters.")
         return
+    st.caption("Freshness labels are based on the posting and expiry dates provided by each source: Recent "
+               "(7 days or less), Older (8–30 days), Possibly stale (over 30 days). A listing being online does not "
+               "confirm the job is still open — check the original listing before applying.")
     notes = filters_not_applied(outcome)
     if notes:
         st.caption("Some sources cannot apply every filter: " + "; ".join(notes) + ".")

@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from config.settings import Settings
+from src.jobs.deduplication import deduplicate
 from src.jobs.models import JobPosting, SearchQuery
 from src.providers.base import JobProvider, ProviderError, ProviderResult
 from src.providers.http import ProviderHttp
@@ -22,9 +23,12 @@ class SearchOutcome:
     query: SearchQuery
     results: tuple[ProviderResult, ...]
     searched_at: datetime
+    unique_jobs: tuple[JobPosting, ...] = field(default=())
+    duplicates_merged: int = 0
 
     @property
     def jobs(self) -> list[JobPosting]:
+        """Every posting as returned by the sources (before duplicates are merged)."""
         return [job for r in self.results for job in r.jobs]
 
     @property
@@ -74,4 +78,6 @@ def search_jobs(query: SearchQuery, settings: Settings, http: ProviderHttp,
     if usable:
         with ThreadPoolExecutor(max_workers=min(8, len(usable))) as pool:
             results.extend(pool.map(lambda p: _run_one(p, query, http), usable))
-    return SearchOutcome(query, tuple(results), datetime.now(timezone.utc))
+    all_jobs = [job for r in results for job in r.jobs]
+    dedup = deduplicate(all_jobs)
+    return SearchOutcome(query, tuple(results), datetime.now(timezone.utc), tuple(dedup.jobs), dedup.duplicates_merged)

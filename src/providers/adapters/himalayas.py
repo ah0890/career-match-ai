@@ -12,7 +12,7 @@ from typing import Any
 
 from src.jobs.filtering import apply_local_filters, keyword_groups
 from src.jobs.models import EmploymentType, JobPosting, SearchQuery, WorkArrangement
-from src.jobs.normalization import clean_text, html_to_text, parse_datetime, positive_number
+from src.jobs.normalization import clean_text, html_to_text, parse_datetime, parse_expiry, positive_number
 from src.providers.adapters._common import first_employment_type, str_list
 from src.providers.base import JobProvider, ProviderInfo, ProviderResponseError, SearchPage
 from src.providers.http import ProviderHttp, RequestPolicy
@@ -86,6 +86,7 @@ class HimalayasProvider(JobProvider):
             salary_currency=currency.upper() if currency else None,
             salary_period=clean_text(item.get("salaryPeriod"), 20),
             posted_at=parse_datetime(positive_number(item.get("pubDate"))),
+            expires_at=parse_expiry(positive_number(item.get("expiryDate"))),
             description=html_to_text(item.get("description")),
             tags=tuple(str_list(item.get("categories"), 10)),
             category=(str_list(item.get("parentCategories")) or [None])[0],

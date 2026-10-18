@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 6 — multi-source job discovery). CVs can be uploaded, parsed and analysed, and real jobs can be searched across several permitted job sources at once. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
+> **Status:** early development (Milestone 7 — normalisation, deduplication and freshness). CVs can be uploaded, parsed and analysed, and real jobs can be searched across several permitted job sources at once. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
 
 ## Planned features
 
@@ -14,6 +14,7 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | CV parsing & ATS compatibility analysis | ✅ Done |
 | Job provider architecture | ✅ Done |
 | Multi-source discovery (Adzuna, Himalayas, Jobicy, Remote OK, Remotive) | ✅ Done |
+| Normalisation, cross-source deduplication, freshness labels | ✅ Done |
 | Explainable CV-to-job matching & recommendations | Planned |
 | Company intelligence with source attribution | Planned |
 | Interview preparation & study plans | Planned |
@@ -82,6 +83,12 @@ Behaviour:
 - Jobs with missing information (no location, type or date) are kept and labelled, not discarded or guessed.
 - `CAREERMATCH_OFFLINE_MODE=true` blocks every external request.
 - The automated tests never contact the internet: they use mocked HTTP transports, and offline mode is forced for every test.
+
+### Duplicates and freshness
+
+- **Duplicates:** the same vacancy from several sources is shown once, with links to every source that listed it. Postings are merged only on strong evidence — the same listing URL (ignoring tracking parameters), or the same employer with near-identical titles, matching seniority, compatible locations and similar descriptions. Similar but different roles (for example "Senior Data Analyst" and "Data Analyst") are kept separate.
+- **Freshness:** *Recent* (posted 7 days ago or less), *Older* (8–30 days), *Possibly stale* (over 30 days), *Expired* (past an expiry date given by the source) and *Date not provided*. Labels rely only on dates supplied by the source. A listing being online does not confirm the job is still open.
+- **Links:** the original listing and a direct application link are kept separate; a listing page is never presented as an application link.
 
 ### Adding a provider
 
