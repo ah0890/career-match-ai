@@ -79,6 +79,7 @@ _BASE_CSS = """
 .cm-kv dd { margin: 0; color: var(--cm-color-text-primary); font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
 
 /* ---------- Badges & notices ---------- */
+.cm-badge-row { display: flex; flex-wrap: wrap; gap: var(--cm-space-sm); }
 .cm-badge {
   display: inline-block; padding: 2px 10px; border-radius: var(--cm-radius-pill);
   font-size: 12px; font-weight: 600; line-height: 1.6; border: 1px solid transparent; white-space: nowrap;

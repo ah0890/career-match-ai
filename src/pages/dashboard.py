@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.ui.components import Step, empty_state, page_header, section_header, steps
+from src.cv.session import get_active_cv
 from src.pages.find_jobs import SEARCH_PREFILL_KEY
 from src.ui.navigation import go_to
 
@@ -36,8 +37,9 @@ def render() -> None:
     _quick_search()
 
     section_header("Getting started", "Complete these steps to unlock matching, research and tracking.")
+    has_cv = get_active_cv(st.session_state) is not None
     steps([
-        Step("Upload your CV", "Add a PDF or DOCX CV. It stays on this computer."),
+        Step("Upload your CV", "Add a PDF or DOCX CV. It stays on this computer.", done=has_cv),
         Step("Review your CV analysis", "See structure, ATS compatibility and prioritised improvements."),
         Step("Search for jobs", "Query the job sources you have configured in Settings."),
         Step("Review ranked matches", "Inspect evidence, missing requirements and recommendations."),

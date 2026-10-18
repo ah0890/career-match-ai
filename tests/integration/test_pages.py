@@ -80,3 +80,63 @@ def test_settings_shows_configured_weights():
 @pytest.mark.parametrize("query,ok", [("", False), ("a", False), ("Data Analyst", True), ("x" * 201, False)])
 def test_validate_search(query, ok):
     assert (validate_search(query) == []) is ok
+
+
+def _render_with_cv(cv_bytes: bytes, name: str) -> AppTest:
+    from src.cv.session import process_upload
+
+    script = (
+        f"import sys\nsys.path.insert(0, {str(ROOT)!r})\n"
+        "from src.ui.theme import apply_theme\n"
+        "import src.pages.cv_analysis as page\n"
+        "apply_theme()\npage.render()\n"
+    )
+    at = AppTest.from_string(script, default_timeout=30)
+    at.session_state["cm_active_cv"] = process_upload(name, cv_bytes, 5 * 1024 * 1024)
+    return at.run()
+
+
+def test_cv_analysis_shows_summary_for_active_cv():
+    from tests.fixtures.cv_factory import make_text_pdf
+
+    at = _render_with_cv(make_text_pdf(), "My CV.pdf")
+    assert not at.exception
+    html = _html(at)
+    assert "My CV.pdf" in html and "Text extracted" in html and "Words extracted" in html
+    assert any("PROFESSIONAL SUMMARY" in c.value for c in at.code)
+
+
+def test_cv_analysis_scanned_pdf_explains_ocr():
+    from tests.fixtures.cv_factory import make_image_only_pdf
+
+    html = _html(_render_with_cv(make_image_only_pdf(), "scan.pdf"))
+    assert "Needs OCR" in html and "Scanned document detected" in html
+
+
+def test_cv_delete_requires_confirmation_then_removes_cv():
+    from tests.fixtures.cv_factory import make_docx
+
+    at = _render_with_cv(make_docx(), "cv.docx")
+    at.button(key="cv_delete").click().run()
+    assert "cm_active_cv" in at.session_state  # not deleted yet
+    assert "cannot be undone" in _html(at)
+    at.button(key="cv_delete_no").click().run()
+    assert "cm_active_cv" in at.session_state
+    at.button(key="cv_delete").click().run()
+    at.button(key="cv_delete_yes").click().run()
+    assert "cm_active_cv" not in at.session_state
+    assert "Your CV" not in _html(at)
+
+
+def test_dashboard_marks_upload_step_done_only_with_real_cv():
+    from src.cv.session import process_upload
+    from tests.fixtures.cv_factory import make_docx
+
+    assert "Done" not in _html(_render("dashboard"))
+    script = (
+        f"import sys\nsys.path.insert(0, {str(ROOT)!r})\n"
+        "import src.pages.dashboard as page\npage.render()\n"
+    )
+    at = AppTest.from_string(script, default_timeout=30)
+    at.session_state["cm_active_cv"] = process_upload("cv.docx", make_docx(), 5 * 1024 * 1024)
+    assert "Done" in _html(at.run())
