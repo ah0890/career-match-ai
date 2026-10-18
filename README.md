@@ -2,14 +2,14 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 1 — foundation). The application shell, configuration and design tokens are in place. Feature pages show an honest "not available yet" state until each feature is built and tested. Nothing in the app is simulated or fabricated.
+> **Status:** early development (Milestone 2 — design system and navigation). All nine sections are navigable with a consistent design system. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
 
 ## Planned features
 
 | Area | Status |
 | --- | --- |
-| Application shell, navigation, design tokens | ✅ Foundation |
-| Premium design system | Planned (Milestone 2) |
+| Application shell, navigation, design tokens | ✅ Done |
+| Design system (cards, badges, notices, metrics, steps) | ✅ Done |
 | CV upload & extraction (PDF, DOCX) | Planned |
 | CV parsing & ATS compatibility analysis | Planned |
 | Multi-source job search via authorised providers | Planned |
@@ -24,18 +24,29 @@ Job sources are integrated only through official APIs, authorised search provide
 ## Architecture
 
 ```text
-app.py                 Streamlit entry point (theme + navigation)
+app.py                 Streamlit entry point (theme, logo, navigation)
+assets/                Brand logo and icon (SVG)
 config/settings.py     Typed, validated configuration (env vars / .env)
+src/pages/             One module per page, each exposing render()
 src/ui/tokens.py       Design tokens — colours, type scale, spacing, radii
-src/ui/theme.py        Global stylesheet generated from tokens
-src/ui/components.py   Reusable, HTML-escaped UI helpers
-src/ui/navigation.py   Page registry and sidebar navigation
+src/ui/theme.py        Stylesheet generated from tokens (targets only cm-* classes)
+src/ui/components.py   Reusable, HTML-escaped components (cards, badges, notices…)
+src/ui/layouts.py      Shared page patterns (empty states with next actions)
+src/ui/navigation.py   Grouped page registry, sidebar navigation, page switching
 .streamlit/config.toml Streamlit theme (mirrors tokens; enforced by tests)
 tests/                 pytest suite (unit + offline integration)
 data/                  Local, git-ignored storage for the database and private files
 ```
 
 Business logic, provider integrations, persistence and presentation will live in separate packages under `src/` as they are implemented.
+
+## Design system
+
+- **Colours:** navy primary, restrained indigo accent, soft neutral surfaces. Status colours (success, warning, danger) are always paired with a text label and meet WCAG 2.2 AA contrast (checked by tests).
+- **Type:** system sans-serif stack (Inter or Manrope when installed locally — no web fonts are downloaded).
+- **Spacing:** 8px rhythm; consistent radii and subtle shadows.
+- **Icons:** Material Symbols, rendered by Streamlit, used as the single icon family.
+- **Styling approach:** Streamlit widgets are themed through `.streamlit/config.toml`; custom CSS targets only CareerMatch's own `cm-*` classes, so it does not depend on Streamlit's internal DOM.
 
 ## Requirements
 

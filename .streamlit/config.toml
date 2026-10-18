@@ -5,11 +5,36 @@ primaryColor = "#243B64"
 backgroundColor = "#F6F8FC"
 secondaryBackgroundColor = "#EEF2F8"
 textColor = "#172033"
-font = "sans-serif"
+borderColor = "#E3E8F0"
+linkColor = "#3B55D9"
+linkUnderline = false
+# System font stack: Inter/Manrope are used when installed locally; nothing is downloaded.
+font = "Inter, Manrope, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+headingFont = "Inter, Manrope, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+headingFontWeights = [700, 650, 600, 600, 600, 600]
+baseFontSize = 15
+baseRadius = "10px"
+buttonRadius = "8px"
+showWidgetBorder = true
+showSidebarBorder = true
+greenColor = "#0F7458"
+greenBackgroundColor = "#E8F6F0"
+yellowColor = "#8F5E12"
+yellowBackgroundColor = "#FFF5DF"
+redColor = "#B3323D"
+redBackgroundColor = "#FDECEE"
+blueColor = "#3B55D9"
+chartCategoricalColors = ["#243B64", "#4F6BED", "#0F7458", "#8F5E12", "#B3323D", "#8A94A6"]
+
+[theme.sidebar]
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EEF2F8"
+textColor = "#172033"
 
 [server]
 # Upload ceiling at the transport level; the app enforces CAREERMATCH_MAX_UPLOAD_MB itself.
 maxUploadSize = 50
+enableStaticServing = false
 
 [browser]
 gatherUsageStats = false

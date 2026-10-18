@@ -10,6 +10,7 @@ COLORS: dict[str, str] = {
     "primary": "#243B64",
     "primary_hover": "#1B2F52",
     "accent": "#4F6BED",
+    "link": "#3B55D9",
     "background": "#F6F8FC",
     "surface": "#FFFFFF",
     "surface_subtle": "#EEF2F8",
