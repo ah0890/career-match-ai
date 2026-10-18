@@ -1,0 +1,9 @@
+[project]
+name = "career-match-ai"
+version = "0.1.0"
+description = "AI-powered job discovery and career assistant: CV analysis, ATS compatibility, job matching, company research, interview preparation and application tracking."
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = []

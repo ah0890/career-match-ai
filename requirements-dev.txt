@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Optional: headless browser for rendered-UI screenshots during visual QA.
+playwright==1.64.0

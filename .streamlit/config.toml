@@ -1,0 +1,18 @@
+# Streamlit theme — mirrors src/ui/tokens.py (kept in sync by tests/unit/test_tokens.py).
+[theme]
+base = "light"
+primaryColor = "#243B64"
+backgroundColor = "#F6F8FC"
+secondaryBackgroundColor = "#EEF2F8"
+textColor = "#172033"
+font = "sans-serif"
+
+[server]
+# Upload ceiling at the transport level; the app enforces CAREERMATCH_MAX_UPLOAD_MB itself.
+maxUploadSize = 50
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
