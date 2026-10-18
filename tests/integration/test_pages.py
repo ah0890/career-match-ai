@@ -53,13 +53,21 @@ def test_find_jobs_validation_error_for_empty_query():
     assert any("Enter a job title" in e.value for e in at.error)
 
 
-def test_find_jobs_reports_no_sources_without_fabricating_results():
+def test_find_jobs_offline_reports_sources_not_searched_without_fabricating_results():
     at = _render("find_jobs")
     at.text_input(key="fj_query").input("Quality Engineer")
     next(b for b in at.button if b.label == "Search").click().run()
-    assert not at.exception
-    assert not at.error
-    assert "No job sources configured" in _html(at)
+    assert not at.exception and not at.error
+    html = _html(at)
+    assert "0 jobs found" in html
+    assert "Not searched" in html and "Offline mode is on" in html
+    assert "<article" not in html  # no job cards rendered
+
+
+def test_find_jobs_lists_unsupported_sources_honestly():
+    at = _render("find_jobs")
+    captions = " ".join(c.value for c in at.caption)
+    assert "LinkedIn Jobs" in captions and "Indeed" in captions
 
 
 def test_find_jobs_reset_clears_inputs():
@@ -68,7 +76,7 @@ def test_find_jobs_reset_clears_inputs():
     next(b for b in at.button if b.label == "Search").click().run()
     next(b for b in at.button if b.label == "Reset").click().run()
     assert at.text_input(key="fj_query").value == ""
-    assert "No job sources configured" not in _html(at)
+    assert "jobs found" not in _html(at)
 
 
 def test_settings_shows_configured_weights():

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from config.settings import get_settings
-from src.ui.components import key_value, notice, page_header, section_header
+from src.providers.registry import UNSUPPORTED_SOURCES, statuses
+from src.ui.components import ListItem, item_list, key_value, page_header, section_header
 
 WEIGHT_LABELS = {
     "ats": "ATS and CV compatibility",
@@ -31,12 +32,15 @@ def render() -> None:
         eyebrow="Account",
     )
 
-    section_header("Job sources")
-    notice(
-        "No job-search providers are configured yet. Provider integrations are added only where an "
-        "official API, authorised search service or permitted public feed exists.",
-        tone="neutral",
+    section_header("Job sources", "Only official APIs and permitted public feeds are used.")
+    labels = {"ready": ("Available", "success"), "needs_configuration": ("Needs setup", "warning"),
+              "disabled": ("Disabled", "neutral"), "offline": ("Offline", "neutral")}
+    item_list(
+        ListItem(ps.provider.info.name, f"{ps.provider.info.access}. {ps.detail}", *labels[ps.availability],
+                 meta=f"Terms: {ps.provider.info.terms_url}")
+        for ps in statuses(s)
     )
+    item_list(ListItem(u.name, u.reason, "Not supported", "neutral") for u in UNSUPPORTED_SOURCES)
 
     section_header("Match scoring", "Weights must be non-negative and sum to 100.")
     weights = s.scoring_weights.as_dict()
@@ -54,5 +58,6 @@ def render() -> None:
     key_value([
         ("Database", _database_label(s.database_url)),
         ("Maximum CV size", f"{s.max_upload_mb:g} MB"),
-        ("External processing", "None — CVs are not sent to any external service"),
+        ("External processing", "None — CVs are never sent to job sources or any other service"),
+        ("Offline mode", "On — no external requests" if s.offline_mode else "Off — job searches contact the sources above"),
     ])

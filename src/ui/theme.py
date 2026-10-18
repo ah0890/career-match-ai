@@ -149,6 +149,27 @@ _BASE_CSS = """
 .cm-list-detail { font-size: 14px; color: var(--cm-color-text-secondary); line-height: 1.5; margin-top: 2px; }
 .cm-list-meta { font-size: 12px; color: var(--cm-color-text-secondary); margin-top: 4px; }
 
+/* ---------- Job cards ---------- */
+.cm-job { padding: var(--cm-space-lg); margin-bottom: var(--cm-space-md); }
+.cm-job-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cm-space-md); }
+.cm-job-head h3 { font-size: var(--cm-font-card-title); font-weight: 650; color: var(--cm-color-text-primary); margin: 0; padding: 0; line-height: 1.35; }
+.cm-job-posted { font-size: 13px; color: var(--cm-color-text-secondary); white-space: nowrap; }
+.cm-job-meta { font-size: 14px; color: var(--cm-color-text-secondary); margin: 4px 0 var(--cm-space-sm) 0; }
+.cm-job-snippet { font-size: 14px; color: var(--cm-color-text-primary); line-height: 1.55; margin: var(--cm-space-md) 0; }
+.cm-job-foot { display: flex; justify-content: space-between; align-items: center; gap: var(--cm-space-md); flex-wrap: wrap;
+  border-top: 1px solid var(--cm-color-border); padding-top: var(--cm-space-md); }
+.cm-job-source { font-size: 13px; color: var(--cm-color-text-secondary); font-weight: 500; }
+.cm-job-links { display: flex; gap: var(--cm-space-sm); flex-wrap: wrap; }
+.cm-link-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  text-decoration: none !important; border: 1px solid var(--cm-color-border); color: var(--cm-color-primary) !important; background: var(--cm-color-surface);
+}
+.cm-link-btn:hover { background: var(--cm-color-surface-subtle); }
+.cm-link-btn:focus-visible { outline: 2px solid var(--cm-color-accent); outline-offset: 2px; }
+.cm-link-primary { background: var(--cm-color-primary); color: #FFFFFF !important; border-color: var(--cm-color-primary); }
+.cm-link-primary:hover { background: var(--cm-color-primary-hover); }
+.cm-muted { font-size: 13px; color: var(--cm-color-text-secondary); }
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 640px) {
   .cm-page-header h1 { font-size: 24px; }
@@ -157,6 +178,8 @@ _BASE_CSS = """
   .cm-kv { grid-template-columns: 1fr; gap: 2px; }
   .cm-kv dd { margin-bottom: var(--cm-space-sm); }
   .cm-empty { padding: var(--cm-space-lg) var(--cm-space-md); }
+  .cm-job { padding: var(--cm-space-md); }
+  .cm-job-head { flex-direction: column; gap: 2px; }
 }
 """
 

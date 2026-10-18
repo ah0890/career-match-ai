@@ -72,6 +72,14 @@ class Settings(BaseSettings):
     weight_education: float = 10
     weight_keywords: float = 10
 
+    # Job sources
+    offline_mode: bool = False  # when true, no external requests are made at all
+    http_timeout_s: float = Field(15, gt=0, le=60)
+    remotive_enabled: bool = True
+    # Remotive asks for at most ~4 requests per day; these bounds keep configuration within its terms.
+    remotive_daily_limit: int = Field(4, ge=1, le=4)
+    remotive_cache_hours: float = Field(6, ge=6, le=48)
+
     @property
     def scoring_weights(self) -> ScoringWeights:
         return ScoringWeights(

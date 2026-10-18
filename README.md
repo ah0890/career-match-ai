@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 4 — CV parsing and ATS analysis). CVs can be uploaded, parsed and analysed with a transparent ATS compatibility score and a job-description keyword comparison. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
+> **Status:** early development (Milestone 5 — job provider architecture). CVs can be uploaded, parsed and analysed, and real jobs can be searched through the Remotive public API. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
 
 ## Planned features
 
@@ -12,7 +12,8 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | Design system (cards, badges, notices, metrics, steps) | ✅ Done |
 | CV upload & extraction (PDF, DOCX) | ✅ Done |
 | CV parsing & ATS compatibility analysis | ✅ Done |
-| Multi-source job search via authorised providers | Planned |
+| Job provider architecture + first source (Remotive) | ✅ Done |
+| Additional job sources | Planned |
 | Explainable CV-to-job matching & recommendations | Planned |
 | Company intelligence with source attribution | Planned |
 | Interview preparation & study plans | Planned |
@@ -32,6 +33,9 @@ src/cv/session.py      The active CV for the current browser session
 src/cv/parsing.py      Section, contact, date, bullet and skill parsing
 src/cv/ats.py          Transparent ATS scoring and job keyword alignment
 src/matching/skills.py Skill taxonomy and boundary-aware skill extraction
+src/jobs/              Job models, normalisation and local filtering
+src/providers/         Provider interface, HTTP layer (timeouts, retries, budgets, cache), registry, adapters
+src/services/          Multi-source search service and shared runtime resources
 src/pages/             One module per page, each exposing render()
 src/ui/tokens.py       Design tokens — colours, type scale, spacing, radii
 src/ui/theme.py        Stylesheet generated from tokens (targets only cm-* classes)
@@ -53,6 +57,30 @@ Business logic, provider integrations, persistence and presentation will live in
 - DOCX extraction keeps document order, including tables, list bullets and contact details placed in the page header.
 - **Scanned / image-only PDFs** are detected and reported — never treated as an empty CV. Partially scanned PDFs list the pages that could not be read. OCR is not included; export a text-based PDF or DOCX instead.
 - The extracted text is held only in the current browser session and is removed when you delete the CV, refresh or close the page.
+
+## Job sources
+
+Jobs are retrieved only through official APIs or public feeds whose terms permit it. Every result shows the source it came from and links to the original listing. A "direct application" link is shown only when a source explicitly provides one — a listing page is never labelled as an application link.
+
+| Source | Status | Access | Notes |
+| --- | --- | --- | --- |
+| [Remotive](https://remotive.com) | ✅ Supported | Public API, no key ([terms](https://github.com/remotive-io/remote-jobs-api)) | Remote jobs only, 24-hour listing delay. To respect its terms, at most 4 new searches per day are sent, and repeated searches reuse results for 6 hours. Results link back to Remotive and name it as the source. |
+| LinkedIn Jobs, Indeed, Glassdoor, Google Jobs, Bayt, GulfTalent, Naukrigulf, Rozee.pk, Mustakbil, Wellfound | ❌ Not supported | — | No public job-search API is available to this app; automated scraping would breach their terms or bypass access controls. |
+
+Behaviour:
+
+- Each source is searched independently with timeouts, limited retries and back-off; one failing source never hides results from the others, and failed sources can be retried.
+- Cached results are labelled as cached, with the time they were retrieved.
+- Filters a source cannot apply (for example minimum salary) are listed as "not applied" rather than silently ignored.
+- `CAREERMATCH_OFFLINE_MODE=true` blocks every external request.
+- The automated tests never contact the internet: they use mocked HTTP transports, and offline mode is forced for every test.
+
+### Adding a provider
+
+1. Create `src/providers/adapters/<name>.py` with a `JobProvider` subclass: fill in `ProviderInfo` (coverage, access, terms URL, attribution, supported filters), implement `missing_configuration()` for required credentials, and `search()` returning a `SearchPage` of normalised `JobPosting` objects.
+2. Use `ProviderHttp` for every request with a `RequestPolicy` that respects the source's rate limits.
+3. Read credentials from settings (`CAREERMATCH_*` environment variables) and document them in `.env.example`.
+4. Register the class in `PROVIDER_CLASSES` in `src/providers/registry.py` and add tests with mocked responses.
 
 ## ATS compatibility score
 

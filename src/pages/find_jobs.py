@@ -3,18 +3,29 @@
 from __future__ import annotations
 
 import streamlit as st
+from pydantic import ValidationError
 
-from src.ui.components import notice, page_header
+from config.settings import get_settings
+from src.jobs.models import EmploymentType, SearchQuery, WorkArrangement
+from src.providers.registry import UNSUPPORTED_SOURCES, statuses
+from src.services.job_search import SearchOutcome, search_jobs
+from src.services.runtime import get_http
+from src.ui.components import ListItem, empty_state, item_list, notice, page_header, section_header
+from src.ui.job_cards import job_card_html, provider_result_badge
 
 SEARCH_PREFILL_KEY = "cm_search_prefill"
+OUTCOME_KEY = "fj_outcome"
 _FORM_KEYS = ("fj_query", "fj_location", "fj_arrangement", "fj_level", "fj_type",
               "fj_posted", "fj_required", "fj_preferred", "fj_industry", "fj_salary")
 
-WORK_ARRANGEMENTS = ["Any", "Remote", "Hybrid", "On-site"]
+WORK_ARRANGEMENTS = {"Any": WorkArrangement.ANY, "Remote": WorkArrangement.REMOTE,
+                     "Hybrid": WorkArrangement.HYBRID, "On-site": WorkArrangement.ONSITE}
 EXPERIENCE_LEVELS = ["Any", "Internship", "Entry level", "Mid level", "Senior", "Lead / Principal",
                      "Manager", "Director / Executive"]
-EMPLOYMENT_TYPES = ["Any", "Full-time", "Part-time", "Contract", "Temporary", "Internship"]
-DATE_POSTED = ["Any time", "Past 24 hours", "Past 3 days", "Past week", "Past month"]
+EMPLOYMENT_TYPES = {"Any": EmploymentType.ANY, "Full-time": EmploymentType.FULL_TIME,
+                    "Part-time": EmploymentType.PART_TIME, "Contract": EmploymentType.CONTRACT,
+                    "Temporary": EmploymentType.TEMPORARY, "Internship": EmploymentType.INTERNSHIP}
+DATE_POSTED = {"Any time": None, "Past 24 hours": 1, "Past 3 days": 3, "Past week": 7, "Past month": 30}
 
 
 def validate_search(query: str) -> list[str]:
@@ -28,17 +39,117 @@ def validate_search(query: str) -> list[str]:
     return errors
 
 
-def _apply_prefill() -> None:
+def _split(value: str | None) -> tuple[str, ...]:
+    return tuple(s.strip() for s in (value or "").split(",") if s.strip())
+
+
+def build_query(state) -> SearchQuery:
+    level = state.get("fj_level", "Any")
+    return SearchQuery(
+        keywords=state.get("fj_query", ""),
+        location=state.get("fj_location") or None,
+        work_arrangement=WORK_ARRANGEMENTS[state.get("fj_arrangement", "Any")],
+        employment_type=EMPLOYMENT_TYPES[state.get("fj_type", "Any")],
+        experience_level=None if level == "Any" else level,
+        posted_within_days=DATE_POSTED[state.get("fj_posted", "Any time")],
+        salary_min=int(state["fj_salary"]) if state.get("fj_salary") else None,
+        required_skills=_split(state.get("fj_required")),
+        preferred_skills=_split(state.get("fj_preferred")),
+        industry=state.get("fj_industry") or None,
+    )
+
+
+def _apply_prefill() -> bool:
     prefill = st.session_state.pop(SEARCH_PREFILL_KEY, None)
     if prefill:
         st.session_state["fj_query"] = prefill.get("query", "")
         st.session_state["fj_location"] = prefill.get("location", "")
-        st.session_state["fj_submitted"] = True
+        return True
+    return False
 
 
 def _reset() -> None:
-    for key in (*_FORM_KEYS, "fj_submitted"):
+    for key in (*_FORM_KEYS, OUTCOME_KEY, "fj_errors"):
         st.session_state.pop(key, None)
+
+
+def _run_search() -> None:
+    errors = validate_search(st.session_state.get("fj_query", ""))
+    if errors:
+        st.session_state["fj_errors"] = errors
+        st.session_state.pop(OUTCOME_KEY, None)
+        return
+    st.session_state.pop("fj_errors", None)
+    try:
+        query = build_query(st.session_state)
+    except ValidationError:
+        st.session_state["fj_errors"] = ["Some search values are invalid. Check the filters and try again."]
+        return
+    settings = get_settings()
+    with st.spinner("Searching job sources…"):
+        st.session_state[OUTCOME_KEY] = search_jobs(query, settings, get_http(settings))
+
+
+_AVAILABILITY = {"ready": ("Available", "success"), "needs_configuration": ("Needs setup", "warning"),
+                 "disabled": ("Disabled", "neutral"), "offline": ("Offline", "neutral")}
+
+
+def _sources_panel() -> None:
+    with st.expander("Job sources", icon=":material/hub:"):
+        rows = []
+        for s in statuses(get_settings()):
+            label, tone = _AVAILABILITY[s.availability]
+            info = s.provider.info
+            rows.append(ListItem(info.name, f"{info.coverage} {s.detail}", label, tone,
+                                 " · ".join(info.notes) or None))
+        item_list(rows)
+        st.caption("Not supported (no public job-search API, and automated scraping would breach their terms): "
+                   + ", ".join(u.name for u in UNSUPPORTED_SOURCES) + ".")
+
+
+def _render_outcome(outcome: SearchOutcome) -> None:
+    jobs = outcome.jobs
+    ok = outcome.succeeded
+    q = outcome.query
+    section_header(
+        f"{len(jobs)} job{'s' if len(jobs) != 1 else ''} found",
+        f"Searched {len(ok)} of {len(outcome.results)} source(s) for “{q.keywords}”"
+        + (f" in {q.location}" if q.location else "") + ".",
+    )
+    rows = []
+    for r in outcome.results:
+        label, tone = provider_result_badge(r)
+        if r.status == "ok":
+            detail = f"{len(r.jobs)} matching job(s)."
+            if r.from_cache and r.fetched_at:
+                detail += (f" Data retrieved {r.fetched_at.astimezone():%d %b, %H:%M} and reused to respect "
+                           "the source's usage limits.")
+        else:
+            detail = r.message or ""
+        rows.append(ListItem(r.provider_name, detail, label, tone))
+    item_list(rows)
+
+    if any(r.retryable for r in outcome.failed):
+        if st.button("Retry failed sources", icon=":material/refresh:", key="fj_retry"):
+            _run_search()
+            st.rerun()
+
+    if not ok:
+        if not outcome.failed:
+            notice("No job source could be searched with these settings. Adjust the filters or enable a source "
+                   "in Settings.", tone="warning")
+        return
+    if not jobs:
+        empty_state("No matching jobs", "No source returned jobs for this search. Try broader keywords, a "
+                    "different location or fewer filters.")
+        return
+    not_applied = [name for name, value in (("minimum salary", q.salary_min), ("experience level", q.experience_level),
+                                            ("industry", q.industry)) if value]
+    if not_applied:
+        st.caption("The connected sources do not support filtering by " + ", ".join(not_applied)
+                   + ", so those filters were not applied.")
+    for job in jobs:
+        st.html(job_card_html(job))
 
 
 def render() -> None:
@@ -47,7 +158,7 @@ def render() -> None:
         "Search the job sources you have configured. Results are always attributed to the source that returned them.",
         eyebrow="Discover",
     )
-    _apply_prefill()
+    prefilled = _apply_prefill()
 
     with st.container(border=True):
         with st.form("job_search", border=False):
@@ -55,10 +166,10 @@ def render() -> None:
             c1.text_input("Job title or keywords", key="fj_query", placeholder="e.g. Data Analyst, Python, SQL")
             c2.text_input("Location", key="fj_location", placeholder="City, country or Remote")
             c3, c4, c5, c6 = st.columns(4)
-            c3.selectbox("Work arrangement", WORK_ARRANGEMENTS, key="fj_arrangement")
+            c3.selectbox("Work arrangement", list(WORK_ARRANGEMENTS), key="fj_arrangement")
             c4.selectbox("Experience level", EXPERIENCE_LEVELS, key="fj_level")
-            c5.selectbox("Employment type", EMPLOYMENT_TYPES, key="fj_type")
-            c6.selectbox("Date posted", DATE_POSTED, key="fj_posted")
+            c5.selectbox("Employment type", list(EMPLOYMENT_TYPES), key="fj_type")
+            c6.selectbox("Date posted", list(DATE_POSTED), key="fj_posted")
             with st.expander("More filters"):
                 m1, m2 = st.columns(2)
                 m1.text_input("Required skills", key="fj_required", placeholder="Comma-separated")
@@ -68,24 +179,15 @@ def render() -> None:
                 m4.number_input("Minimum salary (where the source supports it)", key="fj_salary",
                                 min_value=0, step=1000, value=None, placeholder="No minimum")
             b1, b2, _ = st.columns([1, 1, 4])
-            searched = b1.form_submit_button("Search", type="primary", icon=":material/search:",
-                                             width="stretch")
-            b2.form_submit_button("Reset", on_click=_reset, icon=":material/restart_alt:",
-                                  width="stretch")
+            searched = b1.form_submit_button("Search", type="primary", icon=":material/search:", width="stretch")
+            b2.form_submit_button("Reset", on_click=_reset, icon=":material/restart_alt:", width="stretch")
+    _sources_panel()
 
-    if searched:
-        st.session_state["fj_submitted"] = True
+    if searched or prefilled:
+        _run_search()
 
-    if st.session_state.get("fj_submitted"):
-        errors = validate_search(st.session_state.get("fj_query", ""))
-        if errors:
-            for e in errors:
-                st.error(e, icon=":material/error:")
-        else:
-            notice(
-                "No job sources are connected yet, so this search was not sent anywhere. "
-                "Job-source integrations are being added; once a source is configured in Settings, "
-                "real results will appear here with their source and original listing link.",
-                tone="info",
-                title="No job sources configured.",
-            )
+    for e in st.session_state.get("fj_errors", []):
+        st.error(e, icon=":material/error:")
+    outcome = st.session_state.get(OUTCOME_KEY)
+    if outcome is not None:
+        _render_outcome(outcome)
