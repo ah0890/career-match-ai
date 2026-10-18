@@ -140,3 +140,38 @@ def test_dashboard_marks_upload_step_done_only_with_real_cv():
     at = AppTest.from_string(script, default_timeout=30)
     at.session_state["cm_active_cv"] = process_upload("cv.docx", make_docx(), 5 * 1024 * 1024)
     assert "Done" in _html(at.run())
+
+
+def test_cv_analysis_renders_ats_report_and_tabs():
+    from tests.fixtures.cv_factory import make_text_pdf
+
+    at = _render_with_cv(make_text_pdf(), "cv.pdf")
+    assert not at.exception
+    assert [t.label for t in at.tabs] == ["ATS compatibility", "Structure and details", "Skills",
+                                          "Compare with a job"]
+    html = _html(at)
+    assert "ATS compatibility" in html and "/ 100" in html
+    assert "Prioritised improvements" in html
+    assert "Name (estimated)" in html
+
+
+def test_cv_job_compare_validates_and_shows_alignment():
+    from tests.fixtures.cv_factory import make_text_pdf
+
+    at = _render_with_cv(make_text_pdf(), "cv.pdf")
+    at.text_area(key="cv_job_text").input("Too short")
+    next(b for b in at.button if b.label == "Compare with my CV").click().run()
+    assert any("longer job description" in e.value for e in at.error)
+
+    jd = ("Quality Engineer with Six Sigma, FMEA, SPC and IATF 16949. " * 12).strip()
+    at.text_area(key="cv_job_text").input(jd)
+    next(b for b in at.button if b.label == "Compare with my CV").click().run()
+    html = _html(at)
+    assert "Job keyword alignment" in html and "IATF 16949" in html
+
+
+def test_scanned_cv_skips_analysis():
+    from tests.fixtures.cv_factory import make_image_only_pdf
+
+    at = _render_with_cv(make_image_only_pdf(), "scan.pdf")
+    assert len(at.tabs) == 0

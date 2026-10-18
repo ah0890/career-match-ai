@@ -114,6 +114,41 @@ _BASE_CSS = """
 }
 .cm-empty p { font-size: var(--cm-font-body); color: var(--cm-color-text-secondary); margin: 0 auto; max-width: 56ch; line-height: 1.55; }
 
+/* ---------- Scores ---------- */
+.cm-score-card { padding: var(--cm-space-lg); height: 100%; box-sizing: border-box; }
+.cm-score-title { font-size: var(--cm-font-label); font-weight: 600; color: var(--cm-color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+.cm-score-value { display: flex; align-items: baseline; gap: 6px; margin: var(--cm-space-sm) 0; font-variant-numeric: tabular-nums; }
+.cm-score-value span { font-size: var(--cm-font-score); font-weight: 750; line-height: 1; color: var(--cm-color-text-primary); }
+.cm-score-value small { font-size: 16px; color: var(--cm-color-text-secondary); font-weight: 500; }
+.cm-score-card p { font-size: 14px; line-height: 1.55; color: var(--cm-color-text-secondary); margin: var(--cm-space-md) 0 0 0; }
+
+.cm-bars { padding: var(--cm-space-md) var(--cm-space-lg); }
+.cm-bar-row { padding: 10px 0; }
+.cm-bar-head { display: flex; justify-content: space-between; gap: var(--cm-space-md); font-size: 14px; color: var(--cm-color-text-primary); font-weight: 500; }
+.cm-bar-num { color: var(--cm-color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cm-bar-track { height: 8px; background: var(--cm-color-surface-subtle); border-radius: var(--cm-radius-pill); margin-top: 6px; overflow: hidden; }
+.cm-bar-fill { height: 100%; border-radius: var(--cm-radius-pill); }
+.cm-fill-success { background: var(--cm-color-success); }
+.cm-fill-info { background: var(--cm-color-accent); }
+.cm-fill-warning { background: #C98A1E; }
+.cm-fill-danger { background: var(--cm-color-danger); }
+.cm-fill-neutral { background: #8A94A6; }
+.cm-bar-caption { font-size: 13px; color: var(--cm-color-text-secondary); margin-top: 4px; }
+
+/* ---------- Chips ---------- */
+.cm-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.cm-chip { display: inline-block; padding: 3px 10px; border-radius: var(--cm-radius-pill); font-size: 13px; line-height: 1.5; border: 1px solid transparent; }
+.cm-chip-empty { font-size: 14px; color: var(--cm-color-text-secondary); margin: 0; }
+
+/* ---------- Lists ---------- */
+.cm-list { list-style: none; margin: 0; padding: var(--cm-space-xs) var(--cm-space-lg); }
+.cm-list li { display: flex; gap: var(--cm-space-md); align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--cm-color-border); }
+.cm-list li:last-child { border-bottom: none; }
+.cm-list .cm-badge { flex: 0 0 auto; min-width: 88px; text-align: center; box-sizing: border-box; margin-top: 1px; }
+.cm-list-title { font-weight: 600; font-size: 14px; color: var(--cm-color-text-primary); }
+.cm-list-detail { font-size: 14px; color: var(--cm-color-text-secondary); line-height: 1.5; margin-top: 2px; }
+.cm-list-meta { font-size: 12px; color: var(--cm-color-text-secondary); margin-top: 4px; }
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 640px) {
   .cm-page-header h1 { font-size: 24px; }

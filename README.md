@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 3 — CV upload and extraction). All nine sections are navigable with a consistent design system, and CVs can be uploaded and their text extracted. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
+> **Status:** early development (Milestone 4 — CV parsing and ATS analysis). CVs can be uploaded, parsed and analysed with a transparent ATS compatibility score and a job-description keyword comparison. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
 
 ## Planned features
 
@@ -11,7 +11,7 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | Application shell, navigation, design tokens | ✅ Done |
 | Design system (cards, badges, notices, metrics, steps) | ✅ Done |
 | CV upload & extraction (PDF, DOCX) | ✅ Done |
-| CV parsing & ATS compatibility analysis | Planned |
+| CV parsing & ATS compatibility analysis | ✅ Done |
 | Multi-source job search via authorised providers | Planned |
 | Explainable CV-to-job matching & recommendations | Planned |
 | Company intelligence with source attribution | Planned |
@@ -29,6 +29,9 @@ assets/                Brand logo and icon (SVG)
 config/settings.py     Typed, validated configuration (env vars / .env)
 src/cv/extraction.py   CV validation and in-memory PDF/DOCX text extraction
 src/cv/session.py      The active CV for the current browser session
+src/cv/parsing.py      Section, contact, date, bullet and skill parsing
+src/cv/ats.py          Transparent ATS scoring and job keyword alignment
+src/matching/skills.py Skill taxonomy and boundary-aware skill extraction
 src/pages/             One module per page, each exposing render()
 src/ui/tokens.py       Design tokens — colours, type scale, spacing, radii
 src/ui/theme.py        Stylesheet generated from tokens (targets only cm-* classes)
@@ -50,6 +53,25 @@ Business logic, provider integrations, persistence and presentation will live in
 - DOCX extraction keeps document order, including tables, list bullets and contact details placed in the page header.
 - **Scanned / image-only PDFs** are detected and reported — never treated as an empty CV. Partially scanned PDFs list the pages that could not be read. OCR is not included; export a text-based PDF or DOCX instead.
 - The extracted text is held only in the current browser session and is removed when you delete the CV, refresh or close the page.
+
+## ATS compatibility score
+
+The general ATS score (0–100) is a transparent, rule-based estimate of how reliably software can read your CV. Every point comes from a named check that is shown in the app.
+
+| Component | Points | What is checked |
+| --- | ---: | --- |
+| Text readability | 20 | Text can be extracted, no scanned pages, clean characters, natural line breaks |
+| Section organisation | 20 | Experience, Education, Skills and Summary sections; standard heading names |
+| Contact information | 10 | Email, phone, optional profile link |
+| Experience detail | 15 | Dated roles, one consistent date format, most recent role first |
+| Content quality | 20 | Bullet points, action verbs, quantified results, no first-person pronouns, concise bullets |
+| Length and formatting | 15 | 350–1,100 words, page count, little table layout, identifiable skills |
+
+Bands: **Strong** (85+), **Good** (70–84), **Needs improvement** (50–69), **Significant issues** (below 50).
+
+**Limitations.** Applicant tracking systems differ between products and employer configurations, so this is not the score any real ATS will produce. Parsing is heuristic: anything shown as "Not found" was not detected in the text — it does not mean the candidate lacks it. Name and years of experience are labelled as estimates.
+
+**Job keyword alignment** is reported separately: paste a job description to see which of its recognised skills and frequently repeated terms appear in your CV (70% skills, 30% other terms). Short descriptions are flagged as unreliable. Only add a missing term if it genuinely reflects your experience.
 
 ## Design system
 

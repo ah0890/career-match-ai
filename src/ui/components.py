@@ -109,6 +109,25 @@ def steps_html(steps: Iterable[Step]) -> str:
     return f'<ol class="cm-card cm-steps">{"".join(items)}</ol>'
 
 
+@dataclass(frozen=True)
+class ListItem:
+    title: str
+    detail: str | None = None
+    badge: str | None = None
+    tone: Tone = "neutral"
+    meta: str | None = None
+
+
+def item_list_html(items: Iterable[ListItem]) -> str:
+    rows = []
+    for it in items:
+        badge = badge_html(it.badge, it.tone) if it.badge else ""
+        detail = f'<div class="cm-list-detail">{escape(it.detail)}</div>' if it.detail else ""
+        meta = f'<div class="cm-list-meta">{escape(it.meta)}</div>' if it.meta else ""
+        rows.append(f'<li>{badge}<div><div class="cm-list-title">{escape(it.title)}</div>{detail}{meta}</div></li>')
+    return f'<ul class="cm-card cm-list">{"".join(rows)}</ul>'
+
+
 def key_value_html(rows: Iterable[tuple[str, str]]) -> str:
     body = "".join(f"<dt>{escape(k)}</dt><dd>{escape(v)}</dd>" for k, v in rows)
     return f'<dl class="cm-card cm-kv">{body}</dl>'
@@ -146,6 +165,10 @@ def feature_grid(features: Iterable[Feature]) -> None:
 
 def steps(items: Iterable[Step]) -> None:
     _render(steps_html(items))
+
+
+def item_list(items: Iterable[ListItem]) -> None:
+    _render(item_list_html(items))
 
 
 def key_value(rows: Iterable[tuple[str, str]]) -> None:

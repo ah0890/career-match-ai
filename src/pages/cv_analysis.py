@@ -7,9 +7,12 @@ import math
 import streamlit as st
 
 from config.settings import get_settings
+from src.cv.ats import analyse_cv
 from src.cv.extraction import CVError
+from src.cv.parsing import parse_cv
 from src.cv.session import ActiveCV, delete_active_cv, get_active_cv, process_upload, set_active_cv
 from src.ui.components import Feature, badge_html, feature_grid, key_value, notice, page_header, section_header
+from src.ui.cv_report import render_ats, render_job_compare, render_skills, render_structure
 
 _UPLOADER_GEN = "cv_uploader_gen"
 _LAST_FILE_ID = "cv_last_file_id"
@@ -60,6 +63,7 @@ def _handle_upload(max_bytes: int, max_mb: float, has_cv: bool) -> None:
         st.error(message, icon=":material/error:")
         return
     set_active_cv(st.session_state, cv)
+    st.session_state.pop("cv_job_result", None)
     if cv.extraction.is_usable:
         st.session_state[_FLASH] = f"Text extracted from {cv.filename}."
     _reset_uploader()
@@ -111,7 +115,8 @@ def _delete_controls() -> None:
     if c1.button("Yes, delete", type="primary", icon=":material/delete_forever:", key="cv_delete_yes",
                  width="stretch"):
         delete_active_cv(st.session_state)
-        st.session_state.pop(_CONFIRM_DELETE, None)
+        for key in (_CONFIRM_DELETE, "cv_job_result", "cv_job_text"):
+            st.session_state.pop(key, None)
         _reset_uploader()
         st.session_state[_FLASH] = "Your CV was deleted."
         st.rerun()
@@ -156,3 +161,20 @@ def render() -> None:
     _summary(cv)
     st.write("")
     _delete_controls()
+
+    if cv.extraction.needs_ocr:
+        return
+    parsed = parse_cv(cv.extraction.text)
+    report = analyse_cv(cv.extraction, parsed)
+    section_header("Analysis")
+    tab_ats, tab_structure, tab_skills, tab_job = st.tabs(
+        ["ATS compatibility", "Structure and details", "Skills", "Compare with a job"]
+    )
+    with tab_ats:
+        render_ats(report)
+    with tab_structure:
+        render_structure(parsed)
+    with tab_skills:
+        render_skills(parsed)
+    with tab_job:
+        render_job_compare(cv.extraction.text)
