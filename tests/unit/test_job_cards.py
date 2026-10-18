@@ -8,7 +8,8 @@ NOW = datetime(2026, 10, 18, 12, tzinfo=timezone.utc)
 
 
 def _job(**kw) -> JobPosting:
-    base = dict(provider_id="remotive", source_name="Remotive", title="Data Analyst", company="Example Ltd",
+    base = dict(provider_id="remotive", source_name="Remotive", source_url="https://remotive.com",
+                title="Data Analyst", company="Example Ltd",
                 location="Worldwide", listing_url="https://remotive.com/job/1", description="Analyse data.")
     base.update(kw)
     return JobPosting(**base)
@@ -16,9 +17,10 @@ def _job(**kw) -> JobPosting:
 
 def test_card_shows_attribution_and_original_listing_link():
     html = job_card_html(_job(work_arrangement=WorkArrangement.REMOTE, employment_type=EmploymentType.FULL_TIME))
-    assert "Source: Remotive" in html
+    assert 'Source: <a class="cm-source-link cm-source-remotive" href="https://remotive.com"' in html
     assert 'href="https://remotive.com/job/1"' in html and "View original listing on Remotive" in html
-    assert 'rel="noopener noreferrer"' in html and 'target="_blank"' in html
+    assert 'rel="noopener"' in html and 'target="_blank"' in html
+    assert "nofollow" not in html and "noreferrer" not in html  # sources require followed link-backs
     assert "Apply on employer site" not in html  # never invented
     assert "Remote" in html and "Full-time" in html
 
@@ -67,3 +69,8 @@ def test_provider_badges_distinguish_live_cached_failed():
     assert provider_result_badge(ProviderResult("a", "A", "ok", from_cache=True))[0] == "Cached results"
     assert provider_result_badge(ProviderResult("a", "A", "error"))[0] == "Failed"
     assert provider_result_badge(ProviderResult("a", "A", "skipped"))[0] == "Not searched"
+
+
+def test_salary_period_shown_when_stated():
+    html = job_card_html(_job(salary_min=40, salary_max=60, salary_currency="USD", salary_period="hourly"))
+    assert "USD 40 – 60 per hour" in html

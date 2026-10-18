@@ -6,6 +6,7 @@ import streamlit as st
 from pydantic import ValidationError
 
 from config.settings import get_settings
+from src.jobs.countries import COUNTRIES
 from src.jobs.models import EmploymentType, SearchQuery, WorkArrangement
 from src.providers.registry import UNSUPPORTED_SOURCES, statuses
 from src.services.job_search import SearchOutcome, search_jobs
@@ -15,7 +16,7 @@ from src.ui.job_cards import job_card_html, provider_result_badge
 
 SEARCH_PREFILL_KEY = "cm_search_prefill"
 OUTCOME_KEY = "fj_outcome"
-_FORM_KEYS = ("fj_query", "fj_location", "fj_arrangement", "fj_level", "fj_type",
+_FORM_KEYS = ("fj_query", "fj_location", "fj_country", "fj_arrangement", "fj_level", "fj_type",
               "fj_posted", "fj_required", "fj_preferred", "fj_industry", "fj_salary")
 
 WORK_ARRANGEMENTS = {"Any": WorkArrangement.ANY, "Remote": WorkArrangement.REMOTE,
@@ -25,6 +26,7 @@ EXPERIENCE_LEVELS = ["Any", "Internship", "Entry level", "Mid level", "Senior", 
 EMPLOYMENT_TYPES = {"Any": EmploymentType.ANY, "Full-time": EmploymentType.FULL_TIME,
                     "Part-time": EmploymentType.PART_TIME, "Contract": EmploymentType.CONTRACT,
                     "Temporary": EmploymentType.TEMPORARY, "Internship": EmploymentType.INTERNSHIP}
+COUNTRY_OPTIONS = {"Any country": None, **{name: code for code, name in sorted(COUNTRIES.items(), key=lambda kv: kv[1])}}
 DATE_POSTED = {"Any time": None, "Past 24 hours": 1, "Past 3 days": 3, "Past week": 7, "Past month": 30}
 
 
@@ -48,6 +50,7 @@ def build_query(state) -> SearchQuery:
     return SearchQuery(
         keywords=state.get("fj_query", ""),
         location=state.get("fj_location") or None,
+        country=COUNTRY_OPTIONS[state.get("fj_country", "Any country")],
         work_arrangement=WORK_ARRANGEMENTS[state.get("fj_arrangement", "Any")],
         employment_type=EMPLOYMENT_TYPES[state.get("fj_type", "Any")],
         experience_level=None if level == "Any" else level,
@@ -107,6 +110,36 @@ def _sources_panel() -> None:
                    + ", ".join(u.name for u in UNSUPPORTED_SOURCES) + ".")
 
 
+_FILTER_LABELS = {"location": "location", "country": "country", "work_arrangement": "work arrangement",
+                  "employment_type": "employment type", "posted_within_days": "date posted",
+                  "salary_min": "minimum salary", "employer": "employer", "experience_level": "experience level",
+                  "industry": "industry"}
+
+
+def requested_filters(q: SearchQuery) -> list[str]:
+    values = {"location": q.location, "country": q.country,
+              "work_arrangement": q.work_arrangement is not WorkArrangement.ANY,
+              "employment_type": q.employment_type is not EmploymentType.ANY,
+              "posted_within_days": q.posted_within_days, "salary_min": q.salary_min, "employer": q.employer,
+              "experience_level": q.experience_level, "industry": q.industry}
+    return [k for k, v in values.items() if v]
+
+
+def filters_not_applied(outcome: SearchOutcome) -> list[str]:
+    """Per searched source, the requested filters it cannot apply (so nothing is silently ignored)."""
+    from src.providers.registry import PROVIDER_CLASSES
+
+    supported = {cls.info.id: cls.info.supported_filters for cls in PROVIDER_CLASSES}
+    wanted = requested_filters(outcome.query)
+    notes = []
+    for r in outcome.succeeded:
+        missing = [_FILTER_LABELS[f] for f in wanted if f not in supported.get(r.provider_id, frozenset())
+                   and f != "work_arrangement"]  # remote-only boards already enforce arrangement by skipping
+        if missing:
+            notes.append(f"{r.provider_name} did not filter by {', '.join(missing)}")
+    return notes
+
+
 def _render_outcome(outcome: SearchOutcome) -> None:
     jobs = outcome.jobs
     ok = outcome.succeeded
@@ -143,11 +176,9 @@ def _render_outcome(outcome: SearchOutcome) -> None:
         empty_state("No matching jobs", "No source returned jobs for this search. Try broader keywords, a "
                     "different location or fewer filters.")
         return
-    not_applied = [name for name, value in (("minimum salary", q.salary_min), ("experience level", q.experience_level),
-                                            ("industry", q.industry)) if value]
-    if not_applied:
-        st.caption("The connected sources do not support filtering by " + ", ".join(not_applied)
-                   + ", so those filters were not applied.")
+    notes = filters_not_applied(outcome)
+    if notes:
+        st.caption("Some sources cannot apply every filter: " + "; ".join(notes) + ".")
     for job in jobs:
         st.html(job_card_html(job))
 
@@ -162,9 +193,10 @@ def render() -> None:
 
     with st.container(border=True):
         with st.form("job_search", border=False):
-            c1, c2 = st.columns([3, 2])
+            c1, c2, c0 = st.columns([3, 2, 2])
             c1.text_input("Job title or keywords", key="fj_query", placeholder="e.g. Data Analyst, Python, SQL")
-            c2.text_input("Location", key="fj_location", placeholder="City, country or Remote")
+            c2.text_input("Location", key="fj_location", placeholder="City or region")
+            c0.selectbox("Country", list(COUNTRY_OPTIONS), key="fj_country")
             c3, c4, c5, c6 = st.columns(4)
             c3.selectbox("Work arrangement", list(WORK_ARRANGEMENTS), key="fj_arrangement")
             c4.selectbox("Experience level", EXPERIENCE_LEVELS, key="fj_level")

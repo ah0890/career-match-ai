@@ -243,7 +243,12 @@ def test_remotive_settings_cannot_exceed_terms():
 # --- Registry & service ----------------------------------------------------
 
 def test_status_reflects_configuration():
-    assert all(s.usable for s in statuses(settings()))
+    by_id = {s.provider.info.id: s for s in statuses(settings())}
+    assert {"remotive", "himalayas", "jobicy", "remoteok"} <= {k for k, v in by_id.items() if v.usable}
+    assert by_id["adzuna"].availability == "needs_configuration"
+    assert "CAREERMATCH_ADZUNA_APP_ID" in by_id["adzuna"].detail
+    keyed = {s.provider.info.id: s for s in statuses(settings(adzuna_app_id="id", adzuna_app_key="key"))}
+    assert keyed["adzuna"].usable
     assert provider_status(RemotiveProvider(settings(remotive_enabled=False))).availability == "disabled"
     assert provider_status(RemotiveProvider(settings(offline_mode=True))).availability == "offline"
 

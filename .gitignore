@@ -41,3 +41,6 @@ uploads/
 .idea/
 .DS_Store
 Thumbs.db
+
+# --- Local session notes (not part of the project) ---
+context.md

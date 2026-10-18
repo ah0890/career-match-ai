@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 5 — job provider architecture). CVs can be uploaded, parsed and analysed, and real jobs can be searched through the Remotive public API. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
+> **Status:** early development (Milestone 6 — multi-source job discovery). CVs can be uploaded, parsed and analysed, and real jobs can be searched across several permitted job sources at once. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
 
 ## Planned features
 
@@ -12,8 +12,8 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | Design system (cards, badges, notices, metrics, steps) | ✅ Done |
 | CV upload & extraction (PDF, DOCX) | ✅ Done |
 | CV parsing & ATS compatibility analysis | ✅ Done |
-| Job provider architecture + first source (Remotive) | ✅ Done |
-| Additional job sources | Planned |
+| Job provider architecture | ✅ Done |
+| Multi-source discovery (Adzuna, Himalayas, Jobicy, Remote OK, Remotive) | ✅ Done |
 | Explainable CV-to-job matching & recommendations | Planned |
 | Company intelligence with source attribution | Planned |
 | Interview preparation & study plans | Planned |
@@ -64,14 +64,22 @@ Jobs are retrieved only through official APIs or public feeds whose terms permit
 
 | Source | Status | Access | Notes |
 | --- | --- | --- | --- |
-| [Remotive](https://remotive.com) | ✅ Supported | Public API, no key ([terms](https://github.com/remotive-io/remote-jobs-api)) | Remote jobs only, 24-hour listing delay. To respect its terms, at most 4 new searches per day are sent, and repeated searches reuse results for 6 hours. Results link back to Remotive and name it as the source. |
+| [Adzuna](https://www.adzuna.com) | ✅ Supported (needs a free key) | Official API ([terms](https://developer.adzuna.com/docs/terms_of_service)) | On-site, hybrid and remote jobs in 19 countries (UK, US, Australia, Canada, Germany, France, India, and more). Requires a country. Descriptions are short snippets. Free keys: 25 requests/min, 250/day. Results are labelled "Adzuna" and linked as its terms require. Personal use is permitted; commercial use needs Adzuna's written consent. |
+| [Himalayas](https://himalayas.app) | ✅ Supported | Public API, no key ([terms](https://himalayas.app/api)) | Remote jobs worldwide with salary and location restrictions. Results link back to Himalayas, and the listing link is the one it supplies for applying. |
+| [Jobicy](https://jobicy.com) | ✅ Supported | Public API, no key ([terms](https://jobicy.com/jobs-rss-feed)) | Remote jobs from the last 7 days. Credited with a link; buttons use the original job URL. |
+| [Remote OK](https://remoteok.com) | ✅ Supported | Public API, no key (terms in the API response) | Its current feed (about 100 recent remote jobs) is searched locally. Followed link-backs, as its terms require. |
+| [Remotive](https://remotive.com) | ✅ Supported | Public API, no key ([terms](https://github.com/remotive-io/remote-jobs-api)) | Remote jobs, 24-hour listing delay. At most 4 new searches per day are sent; repeated searches reuse results for 6 hours. |
 | LinkedIn Jobs, Indeed, Glassdoor, Google Jobs, Bayt, GulfTalent, Naukrigulf, Rozee.pk, Mustakbil, Wellfound | ❌ Not supported | — | No public job-search API is available to this app; automated scraping would breach their terms or bypass access controls. |
+| Arbeitnow, Jooble | ❌ Not integrated | — | Their terms of use or official API documentation could not be verified. |
+
+To enable Adzuna, register at <https://developer.adzuna.com/signup> and set `CAREERMATCH_ADZUNA_APP_ID` and `CAREERMATCH_ADZUNA_APP_KEY` in `.env`. Any source can be switched off with `CAREERMATCH_<SOURCE>_ENABLED=false`.
 
 Behaviour:
 
 - Each source is searched independently with timeouts, limited retries and back-off; one failing source never hides results from the others, and failed sources can be retried.
 - Cached results are labelled as cached, with the time they were retrieved.
-- Filters a source cannot apply (for example minimum salary) are listed as "not applied" rather than silently ignored.
+- Filters a source cannot apply (for example minimum salary) are listed per source rather than silently ignored. Remote-only sources are skipped for on-site or hybrid searches.
+- Jobs with missing information (no location, type or date) are kept and labelled, not discarded or guessed.
 - `CAREERMATCH_OFFLINE_MODE=true` blocks every external request.
 - The automated tests never contact the internet: they use mocked HTTP transports, and offline mode is forced for every test.
 

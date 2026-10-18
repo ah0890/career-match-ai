@@ -39,14 +39,27 @@ def _salary(job: JobPosting) -> str | None:
         lo = f"{job.salary_min:,.0f}" if job.salary_min else ""
         hi = f"{job.salary_max:,.0f}" if job.salary_max else ""
         rng = f"{lo} – {hi}" if lo and hi and lo != hi else (lo or hi)
-        return f"{cur}{rng}" + (" (estimated by source)" if job.salary_is_estimate else "")
+        period = {"annual": " per year", "yearly": " per year", "hourly": " per hour", "monthly": " per month",
+                  "weekly": " per week", "daily": " per day"}.get((job.salary_period or "").lower(), "")
+        return f"{cur}{rng}{period}" + (" (estimated by source)" if job.salary_is_estimate else "")
     return job.salary_text
 
 
 def _link(url: str, label: str, primary: bool = False) -> str:
     cls = "cm-link-btn cm-link-primary" if primary else "cm-link-btn"
-    return (f'<a class="{cls}" href="{escape(url, quote=True)}" target="_blank" rel="noopener noreferrer">'
+    # rel="noopener" isolates the new tab; no "noreferrer"/"nofollow" because sources such as Remote OK
+    # require attributed, followed links back to them.
+    return (f'<a class="{cls}" href="{escape(url, quote=True)}" target="_blank" rel="noopener">'
             f"{escape(label)} <span aria-hidden=\"true\">↗</span></a>")
+
+
+def _source_html(job: JobPosting) -> str:
+    name = escape(job.source_name)
+    if job.source_url:
+        name = (f'<a class="cm-source-link cm-source-{escape(job.provider_id)}" href="{escape(job.source_url, quote=True)}"'
+                f' target="_blank" rel="noopener">{name}</a>')
+    return f'<span class="cm-job-source">Source: {name}</span>'
+
 
 
 def job_card_html(job: JobPosting, snippet_chars: int = 260) -> str:
@@ -74,7 +87,7 @@ def job_card_html(job: JobPosting, snippet_chars: int = 260) -> str:
         f'<div class="cm-job-meta">{meta}</div>'
         f'<div class="cm-badge-row">{"".join(badges)}</div>'
         f'<p class="cm-job-snippet">{escape(snippet)}</p>'
-        f'<div class="cm-job-foot"><span class="cm-job-source">Source: {escape(job.source_name)}</span>'
+        f'<div class="cm-job-foot">{_source_html(job)}'
         f'<div class="cm-job-links">{"".join(links)}</div></div>'
         f"</article>"
     )

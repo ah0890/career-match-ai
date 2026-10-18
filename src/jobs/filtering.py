@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta, timezone
 
+from src.jobs.countries import country_terms
 from src.jobs.models import EmploymentType, JobPosting, SearchQuery
 
 _IGNORED = frozenset({"and", "or", "the", "a", "an", "of", "in", "for", "with", "to", "job", "jobs", "role"})
@@ -33,14 +34,18 @@ def matches_keywords(job: JobPosting, keywords: str) -> bool:
     return any(all(_contains(haystack, t) for t in group) for group in groups)
 
 
-def matches_location(job: JobPosting, location: str | None) -> bool:
-    """For remote boards: keep jobs open to the requested location or to anyone."""
-    if not location or location.strip().lower() in {"remote", "anywhere", "worldwide"}:
+def matches_location(job: JobPosting, location: str | None, country: str | None = None) -> bool:
+    """For remote boards: keep jobs open to the requested location/country or to anyone.
+
+    Jobs whose location is not stated are kept (missing data is never a reason to discard).
+    """
+    wanted = [t.strip().lower() for t in re.split(r"[,/]", location or "") if t.strip()]
+    wanted = [w for w in wanted if w not in {"remote", "anywhere", "worldwide"}] + country_terms(country)
+    if not wanted:
         return True
     job_loc = (job.location or "").lower()
     if not job_loc or any(w in job_loc for w in _WORLDWIDE):
         return True
-    wanted = [t.strip().lower() for t in re.split(r"[,/]", location) if t.strip()]
     return any(w in job_loc for w in wanted)
 
 
@@ -50,7 +55,7 @@ def apply_local_filters(jobs: list[JobPosting], query: SearchQuery, *, now: date
     for job in jobs:
         if not matches_keywords(job, query.keywords):
             continue
-        if not matches_location(job, query.location):
+        if not matches_location(job, query.location, query.country):
             continue
         if query.employer and (not job.company or query.employer.lower() not in job.company.lower()):
             continue

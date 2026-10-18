@@ -88,6 +88,7 @@ class RemotiveProvider(JobProvider):
         return JobPosting(
             provider_id=self.info.id,
             source_name=self.info.name,
+            source_url=self.info.website,
             source_job_id=str(item["id"]) if item.get("id") is not None else None,
             title=title,
             company=clean_text(item.get("company_name")),

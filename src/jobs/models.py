@@ -94,17 +94,19 @@ class JobPosting(BaseModel):
     salary_min: float | None = None
     salary_max: float | None = None
     salary_currency: str | None = None
+    salary_period: str | None = None  # e.g. "annual", "hourly" when the source states it
     salary_text: str | None = None  # provider's free-text salary when not structured
     salary_is_estimate: bool = False
     posted_at: datetime | None = None
     description: str = ""
     tags: tuple[str, ...] = ()
     category: str | None = None
+    source_url: str | None = None  # the source's home page, for attribution links
     listing_url: str | None = None  # the original listing on the source site
     apply_url: str | None = None  # only when the provider supplies an explicit application link
     retrieved_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    @field_validator("listing_url", "apply_url", mode="before")
+    @field_validator("listing_url", "apply_url", "source_url", mode="before")
     @classmethod
     def _validate_url(cls, v: object) -> str | None:
         return safe_url(v)

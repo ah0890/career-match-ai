@@ -6,10 +6,16 @@ from dataclasses import dataclass
 from typing import Literal
 
 from config.settings import Settings
+from src.providers.adapters.adzuna import AdzunaProvider
+from src.providers.adapters.himalayas import HimalayasProvider
+from src.providers.adapters.jobicy import JobicyProvider
+from src.providers.adapters.remoteok import RemoteOKProvider
 from src.providers.adapters.remotive import RemotiveProvider
 from src.providers.base import JobProvider
 
-PROVIDER_CLASSES: tuple[type[JobProvider], ...] = (RemotiveProvider,)
+PROVIDER_CLASSES: tuple[type[JobProvider], ...] = (
+    AdzunaProvider, HimalayasProvider, JobicyProvider, RemoteOKProvider, RemotiveProvider,
+)
 
 Availability = Literal["ready", "needs_configuration", "disabled", "offline"]
 
@@ -64,4 +70,6 @@ UNSUPPORTED_SOURCES: tuple[UnsupportedSource, ...] = (
     UnsupportedSource("Rozee.pk", "No public job-search API."),
     UnsupportedSource("Mustakbil", "No public job-search API."),
     UnsupportedSource("Wellfound", "No public job-search API."),
+    UnsupportedSource("Arbeitnow", "Public endpoint exists, but its terms of use could not be verified."),
+    UnsupportedSource("Jooble", "Requires a key; official API documentation could not be verified."),
 )

@@ -9,7 +9,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -79,6 +79,14 @@ class Settings(BaseSettings):
     # Remotive asks for at most ~4 requests per day; these bounds keep configuration within its terms.
     remotive_daily_limit: int = Field(4, ge=1, le=4)
     remotive_cache_hours: float = Field(6, ge=6, le=48)
+    himalayas_enabled: bool = True
+    jobicy_enabled: bool = True
+    remoteok_enabled: bool = True
+    adzuna_enabled: bool = True
+    adzuna_app_id: str | None = None
+    adzuna_app_key: SecretStr | None = None
+    adzuna_default_country: str | None = Field(None, pattern=r"^[a-z]{2}$")
+    adzuna_daily_limit: int = Field(250, ge=1, le=250)
 
     @property
     def scoring_weights(self) -> ScoringWeights:
