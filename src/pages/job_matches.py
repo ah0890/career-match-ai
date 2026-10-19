@@ -11,11 +11,13 @@ from src.jobs.models import WorkArrangement
 from src.matching.browse import (COMPARE_LIMIT, SORT_LABELS, MatchFilter, filter_matches, page_slice, sort_matches,
                                  source_names)
 from src.matching.recommendations import Label, RankedMatch, prioritise
+from src.pages.company_intelligence import PREFILL_KEY as COMPANY_PREFILL_KEY
 from src.pages.find_jobs import OUTCOME_KEY
 from src.matching.improvements import improvement_plan
 from src.services.matching import match_profile, ranked_matches
 from src.ui.components import Feature, Metric, empty_state, metric_grid, notice, page_header, section_header
 from src.ui.layouts import call_to_action, empty_page_body
+from src.ui.navigation import go_to
 from src.ui.match_cards import (comparison_html, description_html, match_card_html, render_breakdown,
                                 render_improvement_plan)
 
@@ -168,6 +170,10 @@ def render() -> None:
             render_improvement_plan(improvement_plan(match_profile(st.session_state, cv), m.result))
         with st.expander("Full job description", icon=":material/article:"):
             st.html(description_html(m.result.job))
+        if m.result.job.company and st.button(f"Research {m.result.job.company}", icon=":material/domain:",
+                                               key=f"jm_research_{start + i}"):
+            st.session_state[COMPANY_PREFILL_KEY] = m.result.job.company
+            go_to("company-intelligence")
         if i < len(page_items) - 1:
             st.write("")
     _pager(pages, "bottom")

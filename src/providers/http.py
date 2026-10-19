@@ -21,7 +21,7 @@ from src.providers.base import (
     ProviderError, ProviderRateLimited, ProviderResponseError, ProviderTimeout, ProviderUnavailable,
 )
 
-USER_AGENT = "CareerMatchAI/0.1 (personal job-search assistant)"
+USER_AGENT = "CareerMatchAI/0.1 (personal job-search assistant; https://github.com/ah0890/career-match-ai)"
 
 
 @dataclass(frozen=True)

@@ -200,6 +200,21 @@ _BASE_CSS = """
 .cm-compare td { overflow-wrap: anywhere; }
 .cm-compare tbody tr:last-child th, .cm-compare tbody tr:last-child td { border-bottom: none; }
 
+/* ---------- Company profile ---------- */
+.cm-company-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--cm-space-md); flex-wrap: wrap; margin: var(--cm-space-md) 0; }
+.cm-company-head h2 { font-size: 22px; font-weight: 700; margin: 0; padding: 0; color: var(--cm-color-text-primary); }
+.cm-company-head p { margin: 4px 0 0 0; color: var(--cm-color-text-secondary); font-size: 15px; }
+.cm-company-summary { padding: var(--cm-space-lg); }
+.cm-company-summary p { margin: 0 0 var(--cm-space-sm) 0; font-size: 15px; line-height: 1.6; color: var(--cm-color-text-primary); }
+.cm-facts { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cm-facts th, .cm-facts td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--cm-color-border); }
+.cm-facts thead th { background: var(--cm-color-surface-subtle); font-weight: 650; color: var(--cm-color-text-primary); }
+.cm-facts tbody th { font-weight: 600; color: var(--cm-color-text-secondary); width: 30%; }
+.cm-facts tbody tr:last-child th, .cm-facts tbody tr:last-child td { border-bottom: none; }
+.cm-fact-asof { font-size: 12px; color: var(--cm-color-text-secondary); margin-top: 2px; }
+.cm-fact-source { white-space: nowrap; width: 1%; }
+.cm-source-list { margin: 0; padding-left: 20px; font-size: 14px; }
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 640px) {
   .cm-page-header h1 { font-size: 24px; }

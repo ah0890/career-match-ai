@@ -292,3 +292,45 @@ def test_job_matches_pages_long_result_lists():
     at.button(key="jm_next_bottom").click().run()
     assert _html(at).count("/ 100 match") == 5
     assert any("Showing 16–20 of 20" in c.value for c in at.caption)
+
+
+def test_company_intelligence_offline_reports_error_without_inventing_facts():
+    at = _render("company_intelligence")
+    at.text_input(key="ci_name").input("Example Devices")
+    next(b for b in at.button if b.label == "Find company").click().run()
+    assert any("Offline mode" in e.value for e in at.error)
+    assert "Key facts" not in _html(at)
+
+
+def test_company_intelligence_lists_companies_from_results_and_renders_profile():
+    from datetime import datetime, timezone
+
+    from src.company.models import CompanyProfile, Fact, Source, Summary
+    from src.jobs.models import SearchQuery
+    from src.providers.base import ProviderResult
+    from src.services.job_search import SearchOutcome
+    from tests.fixtures.match_factory import job
+
+    jobs = [job(company="Example Devices Ltd")]
+    src = Source("Wikidata", "https://www.wikidata.org/wiki/Q901", "CC0 1.0")
+    profile = CompanyProfile("Q901", "Example Devices", "fictional manufacturer",
+                             Summary("A fictional company.", Source("Wikipedia", "https://en.wikipedia.org/wiki/X", "CC BY-SA 4.0")),
+                             (Fact("Industry", "medical technology", src),), (), "https://devices.example.com",
+                             ("Products",), datetime.now(timezone.utc), ("Check important facts.",))
+    script = (f"import sys\nsys.path.insert(0, {str(ROOT)!r})\n"
+              "from src.ui.theme import apply_theme\nimport src.pages.company_intelligence as page\n"
+              "apply_theme()\npage.render()\n")
+    at = AppTest.from_string(script, default_timeout=30)
+    at.session_state["fj_outcome"] = SearchOutcome(SearchQuery(keywords="Quality"),
+                                                   (ProviderResult("himalayas", "Himalayas", "ok", tuple(jobs)),),
+                                                   datetime.now(timezone.utc), unique_jobs=tuple(jobs))
+    at.run()
+    assert "Example Devices Ltd" in at.selectbox(key="ci_pick").options
+    at.session_state["ci_profile"] = profile
+    at.run()
+    assert not at.exception
+    html = _html(at)
+    assert "medical technology" in html and 'href="https://www.wikidata.org/wiki/Q901"' in html
+    assert "CC BY-SA 4.0" in html and "Official website" in html
+    assert any("Not available from these sources: Products" in c.value for c in at.caption)
+    assert "Relevance to your search" in html and "Senior Quality Engineer" in html
