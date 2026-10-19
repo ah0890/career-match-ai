@@ -426,3 +426,24 @@ def test_job_matches_save_to_tracker():
     at.button(key="jm_save_0").click().run()
     assert not at.exception
     assert at.button(key="jm_saved_0").disabled
+
+
+def test_find_jobs_records_history_and_searches_again():
+    at = _render("find_jobs")
+    at.text_input(key="fj_query").input("Quality Engineer")
+    at.selectbox(key="fj_arrangement").set_value("Remote")
+    next(b for b in at.button if b.label == "Search").click().run()
+    next(b for b in at.button if b.label == "Reset").click().run()
+    assert at.text_input(key="fj_query").value == ""
+    assert any(e.label == "Recent searches" for e in at.expander)
+    again = next(b for b in at.button if b.label == "Search again")
+    again.click().run()
+    assert not at.exception
+    assert at.text_input(key="fj_query").value == "Quality Engineer"
+    assert at.selectbox(key="fj_arrangement").value == "Remote"
+    assert "jobs found" in _html(at)
+
+
+def test_settings_shows_stored_job_data_controls():
+    html = _html(_render("settings"))
+    assert "Stored job data" in html and "Cached source responses" in html

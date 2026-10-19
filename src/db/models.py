@@ -63,3 +63,37 @@ class StudyProgress(Base):
     topic_id: Mapped[str] = mapped_column(String(300))
     status: Mapped[str] = mapped_column(String(30))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class HttpCacheEntry(Base):
+    """A cached job-source response, so restarts do not repeat requests the source asked us to limit."""
+
+    __tablename__ = "http_cache"
+
+    key: Mapped[str] = mapped_column(String(200), primary_key=True)
+    provider_id: Mapped[str] = mapped_column(String(50), index=True)
+    payload: Mapped[str] = mapped_column(Text)  # JSON
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class RequestCount(Base):
+    """Live requests made to a source per calendar day, kept across restarts."""
+
+    __tablename__ = "request_counts"
+
+    provider_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class SearchHistory(Base):
+    __tablename__ = "search_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    keywords: Mapped[str] = mapped_column(String(200))
+    query_json: Mapped[str] = mapped_column(Text)  # the full SearchQuery, to search again
+    summary: Mapped[str] = mapped_column(String(300))  # e.g. "Quality Engineer · Germany · Remote"
+    total_jobs: Mapped[int] = mapped_column(Integer, default=0)
+    sources_ok: Mapped[int] = mapped_column(Integer, default=0)
+    sources_failed: Mapped[int] = mapped_column(Integer, default=0)
+    searched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

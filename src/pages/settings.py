@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import streamlit as st
+
 from config.settings import get_settings
+from src.db.http_store import cache_stats, clear_cache
+from src.services.history import clear_history, recent_searches
+from src.services.runtime import get_http
 from src.providers.registry import UNSUPPORTED_SOURCES, statuses
 from src.ui.components import ListItem, item_list, key_value, page_header, section_header
 
@@ -61,3 +66,26 @@ def render() -> None:
         ("External processing", "None — CVs are never sent to job sources or any other service"),
         ("Offline mode", "On — no external requests" if s.offline_mode else "Off — job searches contact the sources above"),
     ])
+    _stored_data(s)
+
+
+def _stored_data(s) -> None:
+    section_header("Stored job data", "Kept on this computer to respect each source's usage limits.")
+    cached, oldest = cache_stats(s.database_url)
+    searches = len(recent_searches(s.database_url, limit=50))
+    key_value([
+        ("Cached source responses", f"{cached}" + (f" (oldest from {oldest.astimezone():%d %b %Y, %H:%M})"
+                                                     if oldest else "")),
+        ("Saved searches", f"{searches} (the 50 most recent are kept)"),
+    ])
+    c1, c2, _ = st.columns([1, 1, 2])
+    if c1.button("Clear cached job data", key="st_clear_cache", icon=":material/delete_sweep:", disabled=not cached):
+        clear_cache(s.database_url)
+        get_http(s).clear_cache()
+        st.toast("Cached job data cleared. Daily request limits still apply.", icon=":material/check_circle:")
+        st.rerun()
+    if c2.button("Clear search history", key="st_clear_history", icon=":material/history:", disabled=not searches):
+        clear_history(s.database_url)
+        st.toast("Search history cleared.", icon=":material/check_circle:")
+        st.rerun()
+    st.caption("Clearing cached data does not reset daily request counts, so sources' limits are still respected.")

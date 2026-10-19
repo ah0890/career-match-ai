@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from html import escape
+
 import streamlit as st
 from pydantic import ValidationError
 
@@ -9,6 +11,7 @@ from config.settings import get_settings
 from src.jobs.countries import COUNTRIES
 from src.jobs.models import EmploymentType, SearchQuery, WorkArrangement
 from src.providers.registry import UNSUPPORTED_SOURCES, statuses
+from src.services.history import clear_history, record_search, recent_searches
 from src.services.job_search import SearchOutcome, search_jobs
 from src.services.runtime import get_http
 from src.ui.components import ListItem, empty_state, item_list, notice, page_header, section_header
@@ -62,13 +65,33 @@ def build_query(state) -> SearchQuery:
     )
 
 
+def form_state(q: SearchQuery) -> dict[str, object]:
+    """The Find Jobs form values that reproduce a past search."""
+    def label(options: dict, value, default: str) -> str:
+        return next((k for k, v in options.items() if v == value), default)
+
+    return {
+        "fj_query": q.keywords, "fj_location": q.location or "",
+        "fj_country": label(COUNTRY_OPTIONS, q.country, "Any country"),
+        "fj_arrangement": label(WORK_ARRANGEMENTS, q.work_arrangement, "Any"),
+        "fj_type": label(EMPLOYMENT_TYPES, q.employment_type, "Any"),
+        "fj_level": q.experience_level if q.experience_level in EXPERIENCE_LEVELS else "Any",
+        "fj_posted": label(DATE_POSTED, q.posted_within_days, "Any time"),
+        "fj_required": ", ".join(q.required_skills), "fj_preferred": ", ".join(q.preferred_skills),
+        "fj_industry": q.industry or "", "fj_salary": q.salary_min,
+    }
+
+
 def _apply_prefill() -> bool:
     prefill = st.session_state.pop(SEARCH_PREFILL_KEY, None)
-    if prefill:
+    if not prefill:
+        return False
+    if "form" in prefill:
+        st.session_state.update(prefill["form"])
+    else:
         st.session_state["fj_query"] = prefill.get("query", "")
         st.session_state["fj_location"] = prefill.get("location", "")
-        return True
-    return False
+    return True
 
 
 def _reset() -> None:
@@ -90,7 +113,12 @@ def _run_search() -> None:
         return
     settings = get_settings()
     with st.spinner("Searching job sources…"):
-        st.session_state[OUTCOME_KEY] = search_jobs(query, settings, get_http(settings))
+        outcome = search_jobs(query, settings, get_http(settings))
+    st.session_state[OUTCOME_KEY] = outcome
+    try:
+        record_search(settings.database_url, outcome)
+    except Exception:  # history is a convenience; never let it break a search
+        pass
 
 
 _AVAILABILITY = {"ready": ("Available", "success"), "needs_configuration": ("Needs setup", "warning"),
@@ -138,6 +166,28 @@ def filters_not_applied(outcome: SearchOutcome) -> list[str]:
         if missing:
             notes.append(f"{r.provider_name} did not filter by {', '.join(missing)}")
     return notes
+
+
+def _history_panel() -> None:
+    url = get_settings().database_url
+    past = recent_searches(url)
+    if not past:
+        return
+    with st.expander("Recent searches", icon=":material/history:"):
+        st.caption("Searching again reuses results each source allows us to keep, so it does not use up their "
+                   "daily limits.")
+        for p in past:
+            c1, c2 = st.columns([4, 1])
+            failed = f", {p.sources_failed} source(s) failed" if p.sources_failed else ""
+            c1.html(f'<div class="cm-list-title">{escape(p.summary)}</div>'
+                    f'<div class="cm-list-meta">{p.total_jobs} job(s) from {p.sources_ok} source(s){failed} · '
+                    f"{p.searched_at.astimezone():%d %b %Y, %H:%M}</div>")
+            if c2.button("Search again", key=f"fj_again_{p.id}", width="stretch"):
+                st.session_state[SEARCH_PREFILL_KEY] = {"form": form_state(p.query)}
+                st.rerun()
+        if st.button("Clear search history", key="fj_clear_history", icon=":material/delete_sweep:"):
+            clear_history(url)
+            st.rerun()
 
 
 def _render_outcome(outcome: SearchOutcome) -> None:
@@ -219,6 +269,7 @@ def render() -> None:
             searched = b1.form_submit_button("Search", type="primary", icon=":material/search:", width="stretch")
             b2.form_submit_button("Reset", on_click=_reset, icon=":material/restart_alt:", width="stretch")
     _sources_panel()
+    _history_panel()
 
     if searched or prefilled:
         _run_search()
