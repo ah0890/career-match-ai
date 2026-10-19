@@ -32,6 +32,11 @@ secondaryBackgroundColor = "#EEF2F8"
 textColor = "#172033"
 
 [server]
+# Only this computer can open the app: it holds personal career data. Change to "0.0.0.0" only
+# behind proper authentication (see SECURITY.md).
+address = "localhost"
+enableXsrfProtection = true
+enableCORS = true
 # Upload ceiling at the transport level; the app enforces CAREERMATCH_MAX_UPLOAD_MB itself.
 maxUploadSize = 50
 enableStaticServing = false

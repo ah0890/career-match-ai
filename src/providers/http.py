@@ -21,6 +21,7 @@ from src.providers.base import (
     ProviderError, ProviderRateLimited, ProviderResponseError, ProviderTimeout, ProviderUnavailable,
 )
 
+MAX_RESPONSE_BYTES = 10 * 1024 * 1024  # job-source responses larger than this are refused
 USER_AGENT = "CareerMatchAI/0.1 (personal job-search assistant; https://github.com/ah0890/career-match-ai)"
 
 
@@ -190,6 +191,8 @@ class ProviderHttp:
                 raise ProviderError(f"The source refused access (HTTP {status}). Check the credentials in Settings.")
             if status >= 400:
                 raise ProviderResponseError(f"The source rejected the request (HTTP {status}).")
+            if len(response.content) > MAX_RESPONSE_BYTES:
+                raise ProviderResponseError("The source returned more data than expected, so it was not used.")
             try:
                 return response.json()
             except ValueError as exc:

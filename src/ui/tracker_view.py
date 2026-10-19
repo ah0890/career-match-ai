@@ -6,6 +6,7 @@ from datetime import date
 from html import escape
 
 from src.db.models import Application
+from src.jobs.models import safe_url
 from src.tracker.repository import STATUS_TONES
 from src.ui.components import badge_html
 
@@ -36,8 +37,9 @@ def application_card_html(app: Application, today: date | None = None) -> str:
         details.append(f"Next: {escape(app.next_action)}"
                        + (f" ({app.next_action_on:%d %b %Y})" if app.next_action_on else ""))
     detail_html = f'<div class="cm-job-meta">{" · ".join(details)}</div>' if details else ""
-    link = (f'<a class="cm-link-btn" href="{escape(app.listing_url, quote=True)}" target="_blank" rel="noopener">'
-            f'View listing <span aria-hidden="true">↗</span></a>' if app.listing_url else "")
+    url = safe_url(app.listing_url)  # re-checked on display: the database file could be edited outside the app
+    link = (f'<a class="cm-link-btn" href="{escape(url, quote=True)}" target="_blank" rel="noopener">'
+            f'View listing <span aria-hidden="true">↗</span></a>' if url else "")
     source = f'<span class="cm-job-source">Source: {escape(app.source_name)}</span>' if app.source_name else ""
     return (
         f'<article class="cm-card cm-job cm-app">'

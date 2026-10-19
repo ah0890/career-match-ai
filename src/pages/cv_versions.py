@@ -32,7 +32,7 @@ def _db() -> str:
 
 def _save_form(cv) -> None:
     with st.container(border=True):
-        st.markdown(f"**Save your active CV as a version** — {cv.filename}")
+        st.html(f'<div class="cm-list-title">Save your active CV as a version — {escape(cv.filename)}</div>')
         with st.form("cvv_save", border=False, clear_on_submit=True):
             c1, c2 = st.columns([1, 2])
             name = c1.text_input("Version name", max_chars=120, placeholder="e.g. Quality management")

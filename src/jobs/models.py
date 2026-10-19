@@ -59,6 +59,11 @@ class SourceLink(BaseModel):
     listing_url: str | None = None
     source_url: str | None = None
 
+    @field_validator("listing_url", "source_url", mode="before")
+    @classmethod
+    def _validate_url(cls, v: object) -> str | None:
+        return safe_url(v)
+
 
 class SearchQuery(BaseModel):
     """What the user is looking for. Providers apply the filters they support."""
