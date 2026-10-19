@@ -91,6 +91,15 @@ class Settings(BaseSettings):
     # --- Application tracking ---------------------------------------------
     tracker_no_response_days: int = Field(21, ge=3, le=120)  # waiting this long counts as "No Response"
 
+    # --- Email tracking (OAuth; read-only access) -------------------------
+    # Credentials of *your own* OAuth app registrations — see README "Email tracking".
+    gmail_client_id: str | None = None
+    gmail_client_secret: SecretStr | None = None  # Google "Desktop app" clients have one; it is not a password
+    outlook_client_id: str | None = None  # Microsoft "public client" registration (no secret)
+    mail_initial_days: int = Field(60, ge=7, le=365)  # history read on the first sync
+    mail_auto_sync_minutes: int = Field(30, ge=0, le=1440)  # 0 = only when you press "Sync emails now"
+    mail_max_per_sync: int = Field(300, ge=20, le=2000)
+
     # --- Backend API (accounts, used by the browser extension) -------------
     api_database_url: str = f"sqlite:///{(DATA_DIR / 'careermatch_api.db').as_posix()}"
     api_host: str = "127.0.0.1"  # loopback only unless you deliberately change it (see SECURITY.md)
