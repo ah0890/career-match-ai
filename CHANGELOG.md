@@ -10,7 +10,66 @@ and decisions worth knowing).
 
 ### Planned
 
-- Milestone 17 — dashboard analytics from your real activity (searches, matches, applications).
+- Milestone 20 — end-to-end testing of complete user journeys and final polish.
+
+## Milestone 19 — Security review — 2026-10-19 (`6446217`)
+
+### Security
+
+- The app now listens on `localhost` only, so other devices on the network cannot open your data;
+  XSRF and CORS protection are set explicitly.
+- Cross-source listing links ("Also listed on") are validated like every other link, and tracker links
+  are re-checked when read from the database.
+- Job-source responses larger than 10 MB are refused.
+- The CV filename on CV Versions is shown as escaped text.
+- Dependencies audited with `pip-audit`: no known vulnerabilities.
+
+### Added
+
+- `SECURITY.md`: threat model, what is stored and where, controls, known limitations and how to report
+  issues.
+- Security regression tests: hostile content through every HTML builder, unsafe URL schemes, tampered
+  database rows, oversized responses, credentials in errors and settings, server binding.
+
+### Notes
+
+- 456 offline tests.
+
+## Milestone 18 — CV versions — 2026-10-19 (`a0699bd`)
+
+### Added
+
+- Save the active CV as a named version with an optional purpose — only after you tick a consent box.
+- Use any version as your active CV, rename it, or delete one or all versions with confirmation (up to 20).
+- Compare two versions: ATS score by component, skills added or removed, sections, word count and a
+  line-by-line diff.
+- Score every version against your latest search results to see which fits best.
+
+### Changed
+
+- Privacy wording on CV Analysis, Settings and the README now states exactly when CV text is stored.
+
+### Notes
+
+- Only the extracted text is stored, never the original file. The local database is not encrypted.
+- 435 offline tests.
+
+## Milestone 17 — Dashboard analytics — 2026-10-19 (`269a208`)
+
+### Added
+
+- Getting-started steps marked done from the real state of your CV, searches, matches and applications.
+- Metrics: searches in the last 30 days, strong matches in your latest results, active applications,
+  interviews and offers.
+- Follow-ups due and your top APPLY matches.
+- Charts for applications by status, applications submitted per week and the match-score distribution,
+  each with hover details and a table view.
+
+### Notes
+
+- Nothing is shown until it is based on your real data. Low-confidence scores are left out of the score
+  chart. Charts use one colour validated for contrast.
+- 426 offline tests.
 
 ## Milestone 16 — Caching and search history — 2026-10-19 (`2005bb6`)
 
