@@ -1,4 +1,7 @@
-"""Local database tables (SQLite by default). No CV text is ever stored here."""
+"""Local database tables (SQLite by default).
+
+CV text is stored only in ``cv_versions``, and only when the user explicitly saves a version.
+"""
 
 from __future__ import annotations
 
@@ -97,3 +100,21 @@ class SearchHistory(Base):
     sources_ok: Mapped[int] = mapped_column(Integer, default=0)
     sources_failed: Mapped[int] = mapped_column(Integer, default=0)
     searched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CVVersion(Base):
+    """A CV the user chose to keep. Only extracted text is stored, never the original file."""
+
+    __tablename__ = "cv_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    purpose: Mapped[str | None] = mapped_column(String(300))  # e.g. "Quality management roles"
+    filename: Mapped[str] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(10))  # pdf / docx
+    page_count: Mapped[int | None] = mapped_column(Integer)
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    text: Mapped[str] = mapped_column(Text)
+    ats_score: Mapped[int | None] = mapped_column(Integer)  # snapshot when saved
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

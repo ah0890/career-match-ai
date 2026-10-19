@@ -5,6 +5,8 @@ from __future__ import annotations
 import streamlit as st
 
 from config.settings import get_settings
+from src.cv.versions import list_versions
+from src.db.engine import session_scope
 from src.db.http_store import cache_stats, clear_cache
 from src.services.history import clear_history, recent_searches
 from src.services.runtime import get_http
@@ -64,9 +66,17 @@ def render() -> None:
         ("Database", _database_label(s.database_url)),
         ("Maximum CV size", f"{s.max_upload_mb:g} MB"),
         ("External processing", "None — CVs are never sent to job sources or any other service"),
+        ("Saved CV versions", _versions_label(s.database_url)),
         ("Offline mode", "On — no external requests" if s.offline_mode else "Off — job searches contact the sources above"),
     ])
     _stored_data(s)
+
+
+def _versions_label(url: str) -> str:
+    with session_scope(url) as session:
+        n = len(list_versions(session))
+    return (f"{n} — extracted text only, kept until you delete it on the CV Versions page" if n
+            else "None — CV text is kept only for the browser session unless you save a version")
 
 
 def _stored_data(s) -> None:

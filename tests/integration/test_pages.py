@@ -469,3 +469,25 @@ def test_dashboard_shows_metrics_charts_and_top_matches_from_real_data():
     assert len(at.get("plotly_chart")) == 3  # pipeline, weekly applications, score distribution
     assert sum(1 for e in at.expander if e.label == "View as table") == 3
     assert "Done" in html
+
+
+def test_cv_versions_requires_consent_then_saves_and_loads():
+    at = _render_page_with("cv_versions", cv=_text_cv())
+    assert "No CV versions yet" in _html(at)
+    name_input = next(t for t in at.text_input if t.label == "Version name")
+    name_input.input("Quality roles")
+    next(b for b in at.button if b.label == "Save version").click().run()
+    assert any("Tick the box" in e.value for e in at.error)
+
+    next(t for t in at.text_input if t.label == "Version name").input("Quality roles")
+    next(c for c in at.checkbox if "keep this CV" in c.label).check()
+    next(b for b in at.button if b.label == "Save version").click().run()
+    assert not at.exception
+    html = _html(at)
+    assert "1 saved version" in html and "Active CV" in html
+    assert "Your active CV is saved as “Quality roles”." in html
+
+
+def test_settings_reports_saved_versions():
+    html = _html(_render("settings"))
+    assert "Saved CV versions" in html and "unless you save a version" in html

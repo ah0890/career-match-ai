@@ -144,7 +144,8 @@ def render() -> None:
         _handle_upload(settings.max_upload_bytes, settings.max_upload_mb, has_cv=cv is not None)
         st.caption("Your CV is processed in memory on this computer and nothing is sent to external services. "
                    "The original file is not stored; the extracted text is kept only for this browser session "
-                   "and is cleared when you delete it, refresh or close the page.")
+                   "and is cleared when you delete it, refresh or close the page — unless you choose to save it "
+                   "on the CV Versions page.")
 
     if cv is None:
         section_header("What the analysis will include")

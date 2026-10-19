@@ -199,8 +199,9 @@ python -m playwright install chromium
 
 - CVs and career data are treated as sensitive personal data and stay on your machine by default.
 - Uploaded CVs are processed in memory; the original file is not stored and CV content is never logged.
+- CV text is kept only for the browser session, unless you explicitly save a CV version. Saved versions hold the extracted text (never the file) in the local, unencrypted database until you delete them.
 - `.env`, databases, uploaded documents and everything under `data/` are git-ignored.
-- The local database holds tracked applications, study progress, search history and cached job-source responses — never CV text.
+- The local database holds tracked applications, study progress, search history, cached job-source responses and — only if you save them — CV versions.
 - No CV content is sent to external services unless an optional integration is added later and you explicitly consent.
 - Company research sends only the company name to Wikidata and Wikipedia.
 
