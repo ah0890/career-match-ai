@@ -89,6 +89,7 @@ class LoopbackFlow:
     state: str = field(default_factory=lambda: secrets.token_urlsafe(24))
     verifier: str = ""
     redirect_uri: str = ""
+    auth_url: str = ""  # the provider's sign-in page for this attempt
     code: str | None = None
     error: str | None = None
     _server: HTTPServer | None = None
@@ -128,7 +129,8 @@ class LoopbackFlow:
         params = {"client_id": self.client_id, "response_type": "code", "redirect_uri": self.redirect_uri,
                   "scope": " ".join(self.provider.scopes), "state": self.state,
                   "code_challenge": challenge, "code_challenge_method": "S256", **dict(self.provider.extra_auth_params)}
-        return f"{self.provider.auth_url}?{urlencode(params)}"
+        self.auth_url = f"{self.provider.auth_url}?{urlencode(params)}"
+        return self.auth_url
 
     def _serve(self) -> None:
         assert self._server is not None

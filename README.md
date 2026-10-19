@@ -8,7 +8,8 @@ Every score is produced by transparent, explainable rules — you can see exactl
 Nothing is simulated or invented: unknown information is shown as "not provided", and suggestions only ever
 ask you to state what is genuinely true. The core app needs no paid AI service.
 
-> **Status:** the original plan (milestones 1–21) and job-specific CV tailoring (milestone 22) are complete. See [CHANGELOG.md](CHANGELOG.md) for what
+> **Status:** the original plan (milestones 1–21), job-specific CV tailoring and email-based application
+> tracking are complete. See [CHANGELOG.md](CHANGELOG.md) for what
 > changed in each milestone and the [roadmap](#roadmap) for what comes next.
 
 ## Contents
@@ -18,6 +19,7 @@ ask you to state what is genuinely true. The core app needs no paid AI service.
 - [How scores and recommendations work](#how-scores-and-recommendations-work)
 - [Job sources](#job-sources)
 - [Privacy and data](#privacy-and-data)
+- [Email tracking](#email-tracking)
 - [Configuration](#configuration)
 - [Backend API](#backend-api)
 - [Testing](#testing)
@@ -54,7 +56,8 @@ prepare for the interview → track the application.**
 | **Job Matches** | Every search result ranked against your CV, with a score breakdown, recommendation, essential requirements not found and the evidence behind each component. Filter, sort, compare up to three jobs side by side, and act on any job (improve your CV for it, research the company, prepare for the interview, save it to the tracker). |
 | **Company Intelligence** | Looks up an employer on Wikidata and Wikipedia. You confirm which entry is meant; every fact links to its source and shows the date the source gives. Shows the employer's roles in your results. |
 | **Interview Preparation** | Likely questions for a chosen job, each with why it may come up, the lines of your CV to draw on and how to prepare. A study plan covers the gaps, with Not started / Preparing / Prepared tracking. Plans can be downloaded as Markdown. |
-| **Application Tracker** | Track applications from Saved to Offer with notes, applied date and follow-up dates. Every status change is recorded. Opening a link never changes a status — only you do. |
+| **Application Tracker** | Every application from Saved to Offer: nine summary cards (applied, active, pending, under review, interviews received and scheduled, offers, rejections, no response), a searchable, sortable table, and for each application a dated timeline, linked emails, status, interview date and notes, reminders and corrections of the interview and offer counts. Opening a link never changes a status. |
+| **Email Tracking** | Optional: connect Gmail or Outlook (read-only) so replies to your applications update the tracker automatically, with a review queue for anything uncertain. See [Email tracking](#email-tracking). |
 | **Tailor CV** | Adapt your CV to one job. Each suggested change (job skills first, most relevant achievements first in each role, a focused summary line) is shown before and after, and you accept or reject it. Adding a missing required skill is off by default and needs you to confirm you genuinely have it. Edit the final text, see the match score before and after, download DOCX or PDF, save it as a CV version and open the application link. Your original CV is never changed. |
 | **CV Versions** | Save tailored CVs (only with your consent), switch between them, compare two versions and see which one fits your latest results best. |
 | **Settings** | Current scoring weights and thresholds, job-source status, stored data, and buttons to clear cached data and search history. |
@@ -172,6 +175,79 @@ sent.
 - The app listens on `localhost` only. It is a single-user local application: do not expose it on a network
   without authentication and hardening. See [SECURITY.md](SECURITY.md) for the threat model and controls.
 
+## Email tracking
+
+Connect Gmail or Outlook once, and the Application Tracker updates itself from your email: your sent
+application, the employer's confirmation, assessments, interview invitations and confirmations, offers and
+rejections each become a dated step on the application's timeline.
+
+**How it decides.** Each job-related email is classified by transparent phrase rules (for example "we regret to
+inform you", "we would like to invite you to an interview", "we are delighted to offer you") with a confidence
+score, and matched to an application by the email conversation, the address you applied to, the company's domain
+or name (including applicant-tracking systems such as Greenhouse, Lever or Workday) and the job title. Quoted
+earlier messages and job-alert newsletters are ignored.
+
+**What happens automatically, and what waits for you.**
+
+- A confident match and classification updates the timeline and moves the status forward — never backwards,
+  never over a change you made yourself afterwards, and never on a closed application.
+- Interviews, offers and rejections need a higher confidence than other updates.
+- Anything uncertain goes to **Needs your review** on the Email Tracking page: confirm it, change what it is,
+  link it to another application, create a new application from it, or mark it as not job-related. Your
+  decisions are final — later syncs never change them.
+- Each application's **Emails** tab lets you reclassify or unlink any email afterwards.
+
+**When it syncs.** When you open the Application Tracker or Email Tracking page (every 30 minutes at most, by
+default), when you press **Sync emails now**, or on a schedule with `python -m src.mail sync` (for example an
+hourly Windows Task Scheduler task) — so the app does not need to stay open. The first sync reads the last 60
+days. Every email is processed once; a failed sync is retried next time from the same point.
+
+### Set up Gmail (one time, about 5 minutes)
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project.
+2. **APIs & Services → Library**: enable the **Gmail API**.
+3. **OAuth consent screen**: choose *External*, fill in the app name and your email, and add **your own
+   address as a test user**. (While the app is in *testing*, only test users can connect; this is enough for
+   personal use. Google asks for verification only if you publish it for other people.)
+4. **Credentials → Create credentials → OAuth client ID**: application type **Desktop app**.
+5. Copy the client ID and secret into `.env`, then restart CareerMatch:
+
+   ```
+   CAREERMATCH_GMAIL_CLIENT_ID=1234-abc.apps.googleusercontent.com
+   CAREERMATCH_GMAIL_CLIENT_SECRET=GOCSPX-...
+   ```
+
+6. On **Email Tracking**, press **Connect Gmail**, sign in on Google's page and allow read-only access.
+
+### Set up Outlook / Microsoft 365 (one time)
+
+1. Open [Microsoft Entra admin center](https://entra.microsoft.com/) → **App registrations → New
+   registration**. Supported account types: *any organisational directory and personal Microsoft accounts*.
+2. **Authentication → Add a platform → Mobile and desktop applications**, redirect URI `http://127.0.0.1`.
+3. **API permissions → Microsoft Graph → Delegated**: `Mail.Read` and `User.Read`.
+4. Copy the **Application (client) ID** into `.env` (no secret is needed) and restart CareerMatch:
+
+   ```
+   CAREERMATCH_OUTLOOK_CLIENT_ID=00000000-0000-0000-0000-000000000000
+   ```
+
+5. On **Email Tracking**, press **Connect Outlook / Microsoft 365** and sign in.
+
+Work or school accounts may need an administrator to approve the app.
+
+### Privacy
+
+- **Read-only access** (`gmail.readonly`, or Graph `Mail.Read`): CareerMatch can never send, delete or change
+  email. Your password is entered only on Google's or Microsoft's own page.
+- Gmail is asked only for messages that look job-related; Outlook messages are filtered on your computer.
+  Message text is analysed in memory and never stored in full.
+- For job emails CareerMatch keeps the sender, subject, date, a 300-character snippet and a link to open the
+  original. For any other email it keeps only an id, so it is never read again.
+- The sign-in token is encrypted; the key is kept in your system's credential store (Windows Credential
+  Manager), not in the database.
+- **Disconnect** removes the token and every synchronised email, and optionally the timeline events that came
+  from it.
+
 ## Configuration
 
 All settings use the `CAREERMATCH_` prefix and can be set in `.env` (see `.env.example`). Invalid values stop
@@ -189,6 +265,12 @@ the app at start-up with a clear error.
 | `CAREERMATCH_<SOURCE>_ENABLED` | `true` | Switch a source off (`REMOTIVE`, `HIMALAYAS`, `JOBICY`, `REMOTEOK`, `ADZUNA`) |
 | `CAREERMATCH_ADZUNA_APP_ID`, `CAREERMATCH_ADZUNA_APP_KEY` | — | Adzuna credentials |
 | `CAREERMATCH_ADZUNA_DEFAULT_COUNTRY` | — | Two-letter country code used when a search gives none |
+| `CAREERMATCH_TRACKER_NO_RESPONSE_DAYS` | `21` | Days without activity before an application shows as No Response |
+| `CAREERMATCH_GMAIL_CLIENT_ID`, `CAREERMATCH_GMAIL_CLIENT_SECRET` | — | Your Google OAuth *Desktop app* client (email tracking) |
+| `CAREERMATCH_OUTLOOK_CLIENT_ID` | — | Your Microsoft app registration (email tracking) |
+| `CAREERMATCH_MAIL_INITIAL_DAYS` | `60` | Days of email read on the first sync |
+| `CAREERMATCH_MAIL_AUTO_SYNC_MINUTES` | `30` | Minutes between automatic syncs while the app is open (0 = only on request) |
+| `CAREERMATCH_MAIL_MAX_PER_SYNC` | `300` | Most emails read in one sync |
 | `CAREERMATCH_API_DATABASE_URL` | `sqlite:///data/careermatch_api.db` | Account database for the backend API |
 | `CAREERMATCH_API_HOST`, `CAREERMATCH_API_PORT` | `127.0.0.1`, `8600` | Where the backend API listens |
 | `CAREERMATCH_API_TOKEN_DAYS` | `30` | How long a sign-in lasts |
@@ -253,7 +335,9 @@ src/company/           Company lookup (Wikidata, Wikipedia) and relevance to you
 src/interview/         Interview questions and study plans
 src/tailoring/         Job-specific CV edits and DOCX/PDF export
 src/api/               Backend API: accounts, tokens and per-account CV, jobs, preparation and tailoring
-src/tracker/           Application tracker operations
+src/tracker/           Application tracker: statuses, timeline, counting rules, safe automatic updates
+src/mail/              Email tracking: OAuth, encrypted tokens, Gmail/Graph adapters, classifier, matcher,
+                       sync and review actions (`python -m src.mail sync`)
 src/analytics/         Dashboard figures from real activity
 src/db/                SQLAlchemy models and engine, persistent HTTP cache
 src/services/          Search, matching cache, search history, shared runtime resources

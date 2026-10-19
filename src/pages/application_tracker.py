@@ -14,13 +14,17 @@ from src.tracker.recruitment import (
     NO_RESPONSE, current_status, interview_count, offer_count, tracking_summary,
 )
 from src.tracker.repository import (
-    APPLIED, INTERVIEW_STATUSES, STATUS_NAMES, STATUS_RANK, STATUSES, ApplicationInput, TrackerError, add_manual,
+    APPLIED, EVENT_KINDS, INTERVIEW_STATUSES, STATUS_NAMES, STATUS_RANK, STATUSES, ApplicationInput, TrackerError, add_manual,
     correct_counts, delete, due_actions, get, list_applications, set_status, update_contact, update_details,
     update_interview,
 )
 from src.ui.components import Metric, badge_html, empty_state, metric_grid, notice, page_header, section_header
 from src.ui.layouts import call_to_action
 from src.ui.tracker_view import application_card_html, follow_up_label, timeline_html
+from src.jobs.models import safe_url
+from src.mail import review as mail_review
+from src.services import mail as mail_service
+from src.ui.navigation import go_to
 
 _FLASH = "at_flash"
 _SELECTED = "at_selected"
@@ -181,9 +185,12 @@ def _details(app_id: int) -> None:
             return
         _ = (app.events, app.history, [e.message for e in app.events])  # load while the session is open
     st.html(application_card_html(app))
-    timeline, status_tab, interview_tab, details_tab = st.tabs(["Timeline", "Status", "Interview", "Details"])
+    timeline, emails_tab, status_tab, interview_tab, details_tab = st.tabs(
+        ["Timeline", "Emails", "Status", "Interview", "Details"])
     with timeline:
         st.html(timeline_html(app.events))
+    with emails_tab:
+        _emails(app)
     with status_tab:
         _status_form(app)
     with interview_tab:
@@ -191,6 +198,69 @@ def _details(app_id: int) -> None:
     with details_tab:
         _details_form(app)
         _delete(app)
+
+
+def _emails(app) -> None:
+    with session_scope(_db()) as s:
+        messages = mail_review.linked_messages(s, app.id)
+    if not messages:
+        st.caption("No emails are linked to this application. Connect your mailbox on the Email Tracking page, "
+                   "or record the address you applied to under Details so replies can be matched.")
+        return
+    kinds = [k for k in EVENT_KINDS if k not in ("Saved", "To Apply")]
+    for msg in messages:
+        with st.container(border=True):
+            who = "Sent by you" if msg.direction == "out" else f"From {msg.from_name or msg.from_address}"
+            when = msg.sent_at.strftime("%d %b %Y") if msg.sent_at else ""
+            st.markdown(f"**{msg.subject or '(no subject)'}**  \n{who} · {when} · recorded as **{msg.kind}**"
+                        + (" (confirmed by you)" if msg.user_confirmed else ""))
+            c1, c2, c3, c4 = st.columns([2, 1, 1, 1], vertical_alignment="bottom")
+            kind = c1.selectbox("Recorded as", kinds, index=kinds.index(msg.kind) if msg.kind in kinds else 0,
+                                key=f"at_mkind_{msg.id}")
+            if c2.button("Save", key=f"at_msave_{msg.id}", width="stretch", disabled=kind == msg.kind):
+                with session_scope(_db()) as s:
+                    mail_review.confirm(s, msg.id, app.id, kind)
+                _flash(f"Email recorded as {kind}.")
+                st.rerun()
+            if c3.button("Unlink", key=f"at_munlink_{msg.id}", width="stretch",
+                         help="Not about this application: it moves to the review queue on the Email Tracking page."):
+                with session_scope(_db()) as s:
+                    mail_review.unlink(s, msg.id)
+                _flash("Email unlinked. Check the status is still right.")
+                st.rerun()
+            if url := safe_url(msg.web_link):
+                c4.link_button("Open email", url, width="stretch")
+
+
+def _sync_bar() -> None:
+    accounts = mail_service.accounts()
+    if not accounts:
+        return
+    runs = mail_service.auto_sync()
+    if runs and any(r.new for r in runs):
+        st.toast(f"Email synced: {sum(r.matched for r in runs)} update(s).", icon=":material/sync:")
+        accounts = mail_service.accounts()
+    pending = mail_service.review_count()
+    last = max((a.last_sync_at for a in accounts if a.last_sync_at), default=None)
+    problems = [a for a in accounts if a.sync_status in ("error", "reconnect")]
+    with st.container(border=True):
+        c1, c2, c3 = st.columns([3, 1, 1], vertical_alignment="center")
+        text = (f"**Email tracking** · {len(accounts)} mailbox(es) · last synced "
+                f"{last.strftime('%d %b %Y, %H:%M') + ' UTC' if last else 'never'}")
+        if pending:
+            text += f" · **{pending} email(s) to review**"
+        if problems:
+            text += " · a mailbox needs attention"
+        c1.markdown(text)
+        if c2.button("Sync emails now", key="at_sync", icon=":material/sync:", width="stretch"):
+            with st.spinner("Reading your recent emails…"):
+                for account in accounts:
+                    if account.sync_status != "reconnect":
+                        mail_service.sync_now(account.id)
+            _flash("Email sync finished.")
+            st.rerun()
+        if c3.button("Review" if pending else "Email settings", key="at_review", width="stretch"):
+            go_to("email-tracking")
 
 
 def _status_form(app) -> None:
@@ -297,6 +367,8 @@ def render() -> None:
     )
     if msg := st.session_state.pop(_FLASH, None):
         st.toast(msg, icon=":material/check_circle:")
+    if not get_settings().offline_mode:
+        _sync_bar()
     with session_scope(_db()) as s:
         due = due_actions(s)
         apps = list_applications(s)

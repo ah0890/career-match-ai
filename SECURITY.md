@@ -25,14 +25,19 @@ everything it receives from job sources and public data sources as untrusted.
 | Job-source responses and daily request counts | Local SQLite database | Cached within each source's limits; clearable in Settings |
 | Backend API accounts: email, scrypt password hash, hashed sign-in tokens | Separate local database (`data/careermatch_api.db`) | Until the account is deleted |
 | Backend API CV text and analysed jobs | Same database, linked to the account | Only after consent; deleted with the CV or account |
+| Email tracking: OAuth token for a connected mailbox | Local SQLite database, **encrypted** (Fernet); the key is in the OS credential store | Until you disconnect the mailbox |
+| Email tracking: job-related emails (sender, subject, date, 300-character snippet, link) | Local SQLite database | Until you dismiss the email or disconnect the mailbox |
+| Email tracking: other emails | Local SQLite database — provider id only, no content | Until you disconnect the mailbox |
 | Adzuna credentials | `.env` / environment variables | Never written to the database, logs or error messages |
 
 The database lives at `data/careermatch.db` by default. It is **not encrypted** — use full-disk encryption
 (BitLocker, FileVault, LUKS) if other people can access your computer. `.env`, `data/` and `*.db` are
 git-ignored.
 
-**What leaves your computer:** search terms and filters (to the job sources you enable) and company names
-(to Wikidata and Wikipedia). CV content is never sent anywhere.
+**What leaves your computer:** search terms and filters (to the job sources you enable), company names
+(to Wikidata and Wikipedia) and, if you connect a mailbox, read-only requests to Google or Microsoft for your
+own email (the search terms include your applications' company names and contact addresses). CV content is
+never sent anywhere.
 
 ## Controls in place
 
@@ -53,6 +58,11 @@ git-ignored.
   answer. Every query is scoped to the signed-in account, so another account's job behaves as if it does not
   exist. Cross-origin requests are accepted only from Chrome extensions and origins you list. Responses carry
   `nosniff`, `DENY` framing and `no-store` headers, and validation errors never echo submitted values.
+- **Email:** official OAuth 2.0 for installed apps (authorization code + PKCE) with a one-time loopback
+  listener on `127.0.0.1` that accepts only the expected `state`; read-only scopes (`gmail.readonly`; Graph
+  `Mail.Read` + `User.Read`). Passwords are never seen. Tokens are encrypted with Fernet; the key is stored in
+  the OS credential store, so a copied database cannot be used. Client IDs come only from `.env`. Message
+  bodies are processed in memory and never stored; sync errors never include tokens, URLs or email content.
 - **Database:** all queries go through SQLAlchemy with bound parameters.
 - **Dependencies:** pinned versions, checked with `pip-audit` (no known vulnerabilities at the time of the
   last review).

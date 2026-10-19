@@ -14,6 +14,37 @@ and decisions worth knowing).
   need a backend API with user accounts.
 - Milestone 26 — multi-language support.
 
+## Email-based application tracking — 2026-10-19 (`d6a8d13`, `2f4d7d6`, `d0e0acb`, `9e32d2b`)
+
+### Added
+
+- Recruitment statuses: Application Submitted, Application Received, Under Review, Assessment, Interview
+  Invitation, Interview Scheduled, Interview Completed, Offer Received, Rejected, Withdrawn, and a derived
+  No Response after a configurable period without activity.
+- A dated timeline for every application, interview and offer counts with corrections, interview date and
+  notes, and the address and subject an application was emailed to (also recorded from Tailor CV).
+- Tracker dashboard with nine summary cards and documented counting rules, and a searchable, filterable,
+  sortable, paginated table with a details panel.
+- Email Tracking page: connect Gmail or Outlook with read-only OAuth, sync now or automatically, review queue,
+  sync history, disconnect and delete. `python -m src.mail sync` for scheduled syncs.
+- Rule-based email classifier and reply matcher with confidence scores; uncertain results wait for review.
+
+### Changed
+
+- Older databases are migrated automatically: new columns are added, Applied / Interview / Offer become
+  Application Submitted / Interview Scheduled / Offer Received, and the timeline is built from the existing
+  status history.
+
+### Security
+
+- OAuth with PKCE and state checking; read-only scopes; tokens encrypted with a key held in the OS credential
+  store; only job-related email details are kept, other emails only by id.
+
+### Notes
+
+- Live Gmail and Outlook access needs your own free OAuth app registration (see README). The sync was tested
+  against simulated Gmail, Graph and OAuth services; it has not yet been run against a real mailbox.
+
 ## Design refresh — 2026-10-19
 
 ### Changed

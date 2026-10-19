@@ -29,6 +29,7 @@ PAGES: tuple[PageSpec, ...] = (
              "interview_preparation", "Prepare"),
     PageSpec("Application Tracker", "application-tracker", ":material/view_kanban:",
              "application_tracker", "Track"),
+    PageSpec("Email Tracking", "email-tracking", ":material/mark_email_read:", "email_tracking", "Track"),
     PageSpec("CV Versions", "cv-versions", ":material/folder_copy:", "cv_versions", "Track"),
     PageSpec("Settings", "settings", ":material/settings:", "settings", "Account"),
 )
