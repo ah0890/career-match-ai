@@ -14,6 +14,18 @@ and decisions worth knowing).
   need a backend API with user accounts.
 - Milestone 26 — multi-language support.
 
+## Adzuna removed — 2026-10-19
+
+### Removed
+
+- The Adzuna job source, its settings and its tests: its API needs paid access, and CareerMatch AI uses only
+  free sources. It is listed under unsupported sources with the reason.
+
+### Notes
+
+- The remaining sources (Himalayas, Jobicy, Remote OK, Remotive) list remote jobs; an on-site search skips them
+  and says why. Remove any `CAREERMATCH_ADZUNA_*` lines from your `.env` (they are ignored if left in).
+
 ## Email-based application tracking — 2026-10-19 (`d6a8d13`, `2f4d7d6`, `d0e0acb`, `9e32d2b`)
 
 ### Added

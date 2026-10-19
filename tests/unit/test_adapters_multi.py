@@ -5,7 +5,6 @@ from config.settings import Settings
 from src.jobs.filtering import matches_location
 from src.jobs.models import EmploymentType, JobPosting, SearchQuery, WorkArrangement
 from src.pages.find_jobs import filters_not_applied
-from src.providers.adapters.adzuna import AdzunaProvider
 from src.providers.adapters.himalayas import HimalayasProvider
 from src.providers.adapters.jobicy import JobicyProvider
 from src.providers.adapters.remoteok import RemoteOKProvider
@@ -95,78 +94,24 @@ def test_remoteok_invalid_payload():
         RemoteOKProvider(settings()).parse({"not": "a list"})
 
 
-# --- Adzuna ----------------------------------------------------------------
-
-def keyed(**kw) -> Settings:
-    return settings(adzuna_app_id="test-id", adzuna_app_key="test-secret-key", **kw)
-
-
-def test_adzuna_requires_credentials_and_country():
-    assert AdzunaProvider(settings()).missing_configuration() == ["CAREERMATCH_ADZUNA_APP_ID",
-                                                                   "CAREERMATCH_ADZUNA_APP_KEY"]
-    p = AdzunaProvider(keyed())
-    assert "Choose a country" in p.unsupported_reason(SearchQuery(keywords="qa"))
-    assert "does not cover" in p.unsupported_reason(SearchQuery(keywords="qa", country="pk"))
-    assert p.unsupported_reason(SearchQuery(keywords="qa", country="gb")) is None
-    assert AdzunaProvider(keyed(adzuna_default_country="gb")).unsupported_reason(SearchQuery(keywords="qa")) is None
-
-
-def test_adzuna_request_params_and_parse():
-    seen: list = []
-    q = SearchQuery(keywords="quality engineer", country="gb", location="Manchester", posted_within_days=7,
-                    salary_min=30000, employment_type=EmploymentType.FULL_TIME)
-    page = AdzunaProvider(keyed()).search(q, http_for({"adzuna.com": pp.adzuna_payload()}, seen))
-    req = seen[0]
-    assert req.url.path == "/v1/api/jobs/gb/search/1"
-    params = req.url.params
-    assert params["what"] == "quality engineer" and params["where"] == "Manchester"
-    assert params["max_days_old"] == "7" and params["salary_min"] == "30000" and params["full_time"] == "1"
-    j = page.jobs[0]
-    assert j.title == "Quality Engineer"  # highlight markup removed
-    assert j.company == "Example Plc" and j.country == "gb" and j.salary_currency == "GBP"
-    assert j.salary_is_estimate and j.salary_period is None  # period not stated by Adzuna → not guessed
-    assert j.employment_type is EmploymentType.FULL_TIME
-    assert j.listing_url == "https://www.adzuna.co.uk/jobs/land/ad/4321" and j.apply_url is None
-
-
-def test_adzuna_missing_company_and_salary_not_invented():
-    jobs = AdzunaProvider(keyed()).parse(pp.adzuna_payload(), "gb")
-    j = jobs[1]
-    assert j.company is None and j.salary_currency is None and j.employment_type is EmploymentType.CONTRACT
-
-
-def test_adzuna_rejected_key_message_has_no_secret():
-    page_error = None
-    try:
-        AdzunaProvider(keyed()).search(SearchQuery(keywords="qa", country="gb"), http_for({"adzuna.com": 401}))
-    except ProviderError as exc:
-        page_error = exc.message
-    assert page_error and "test-secret-key" not in page_error and "test-id" not in page_error
-
-
-def test_adzuna_secret_not_in_settings_repr():
-    assert "test-secret-key" not in repr(keyed())
-
-
 # --- Cross-provider --------------------------------------------------------
 
 def test_multi_source_search_partial_failure():
-    s = keyed()
     http = http_for({"himalayas.app": pp.himalayas_payload(), "jobicy.com": 503, "remoteok.com": pp.remoteok_payload(),
-                     "remotive.com": {"jobs": []}, "adzuna.com": pp.adzuna_payload()})
-    outcome = search_jobs(SearchQuery(keywords="quality engineer", country="gb"), s, http)
+                     "remotive.com": {"jobs": []}})
+    outcome = search_jobs(SearchQuery(keywords="quality engineer"), settings(), http)
     by_id = {r.provider_id: r for r in outcome.results}
     assert by_id["jobicy"].status == "error" and by_id["jobicy"].retryable
-    assert by_id["himalayas"].status == "ok" and by_id["adzuna"].status == "ok"
-    assert {j.provider_id for j in outcome.jobs} >= {"himalayas", "adzuna", "remoteok"}
+    assert by_id["himalayas"].status == "ok"
+    assert {j.provider_id for j in outcome.jobs} >= {"himalayas", "remoteok"}
 
 
 def test_onsite_search_skips_remote_only_boards():
     outcome = search_jobs(SearchQuery(keywords="quality", country="gb", work_arrangement=WorkArrangement.ONSITE),
-                          keyed(), http_for({"adzuna.com": pp.adzuna_payload()}))
+                          settings(), http_for({}))
     statuses = {r.provider_id: r.status for r in outcome.results}
-    assert statuses["adzuna"] == "ok"
     assert all(statuses[p] == "skipped" for p in ("himalayas", "jobicy", "remoteok", "remotive"))
+    assert "adzuna" not in statuses
 
 
 def test_filters_not_applied_are_reported_per_source():

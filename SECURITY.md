@@ -28,7 +28,7 @@ everything it receives from job sources and public data sources as untrusted.
 | Email tracking: OAuth token for a connected mailbox | Local SQLite database, **encrypted** (Fernet); the key is in the OS credential store | Until you disconnect the mailbox |
 | Email tracking: job-related emails (sender, subject, date, 300-character snippet, link) | Local SQLite database | Until you dismiss the email or disconnect the mailbox |
 | Email tracking: other emails | Local SQLite database — provider id only, no content | Until you disconnect the mailbox |
-| Adzuna credentials | `.env` / environment variables | Never written to the database, logs or error messages |
+| OAuth client IDs and API keys | `.env` / environment variables | Never written to the database, logs or error messages |
 
 The database lives at `data/careermatch.db` by default. It is **not encrypted** — use full-disk encryption
 (BitLocker, FileVault, LUKS) if other people can access your computer. `.env`, `data/` and `*.db` are

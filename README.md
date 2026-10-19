@@ -126,16 +126,16 @@ links to the original listing; a direct application link is shown only when the 
 
 | Source | Status | Access | Notes |
 | --- | --- | --- | --- |
-| [Adzuna](https://www.adzuna.com) | ✅ Supported (free key) | Official API ([terms](https://developer.adzuna.com/docs/terms_of_service)) | On-site, hybrid and remote jobs in 19 countries; needs a country. Short description snippets. 25 requests/min, 250/day. Personal use permitted; commercial use needs Adzuna's consent. |
 | [Himalayas](https://himalayas.app) | ✅ Supported | Public API ([terms](https://himalayas.app/api)) | Remote jobs worldwide with salaries and location restrictions. |
 | [Jobicy](https://jobicy.com) | ✅ Supported | Public API ([terms](https://jobicy.com/jobs-rss-feed)) | Remote jobs from the last 7 days. |
 | [Remote OK](https://remoteok.com) | ✅ Supported | Public API (terms in the response) | About 100 recent remote jobs, searched locally. |
 | [Remotive](https://remotive.com) | ✅ Supported | Public API ([terms](https://github.com/remotive-io/remote-jobs-api)) | Remote jobs with a 24-hour delay. At most 4 new searches per day; results reused for 6 hours. |
 | LinkedIn Jobs, Indeed, Glassdoor, Google Jobs, Bayt, GulfTalent, Naukrigulf, Rozee.pk, Mustakbil, Wellfound | ❌ Not supported | — | No public job-search API is available; automated scraping would breach their terms. |
 | Arbeitnow, Jooble | ❌ Not integrated | — | Terms of use or official API documentation could not be verified. |
+| Adzuna | ❌ Removed | — | Its API needs paid access; CareerMatch AI uses only free sources. |
 
-To enable Adzuna, register at <https://developer.adzuna.com/signup> and set `CAREERMATCH_ADZUNA_APP_ID` and
-`CAREERMATCH_ADZUNA_APP_KEY` in `.env`. Any source can be switched off with `CAREERMATCH_<SOURCE>_ENABLED=false`.
+All supported sources focus on **remote** jobs; an on-site search skips them and explains why. Any source can be
+switched off with `CAREERMATCH_<SOURCE>_ENABLED=false`.
 
 - Each source is searched independently with timeouts, retries and back-off; one failing source never hides
   the others, and failed sources can be retried.
@@ -262,9 +262,7 @@ the app at start-up with a clear error.
 | `CAREERMATCH_WEIGHT_ATS`, `_REQUIRED_SKILLS`, `_EXPERIENCE`, `_RESPONSIBILITIES`, `_EDUCATION`, `_KEYWORDS` | 20, 25, 20, 15, 10, 10 | Match-score weights (must be ≥ 0 and sum to 100) |
 | `CAREERMATCH_OFFLINE_MODE` | `false` | Block every external request |
 | `CAREERMATCH_HTTP_TIMEOUT_S` | `15` | Timeout per request to a source |
-| `CAREERMATCH_<SOURCE>_ENABLED` | `true` | Switch a source off (`REMOTIVE`, `HIMALAYAS`, `JOBICY`, `REMOTEOK`, `ADZUNA`) |
-| `CAREERMATCH_ADZUNA_APP_ID`, `CAREERMATCH_ADZUNA_APP_KEY` | — | Adzuna credentials |
-| `CAREERMATCH_ADZUNA_DEFAULT_COUNTRY` | — | Two-letter country code used when a search gives none |
+| `CAREERMATCH_<SOURCE>_ENABLED` | `true` | Switch a source off (`REMOTIVE`, `HIMALAYAS`, `JOBICY`, `REMOTEOK`) |
 | `CAREERMATCH_TRACKER_NO_RESPONSE_DAYS` | `21` | Days without activity before an application shows as No Response |
 | `CAREERMATCH_GMAIL_CLIENT_ID`, `CAREERMATCH_GMAIL_CLIENT_SECRET` | — | Your Google OAuth *Desktop app* client (email tracking) |
 | `CAREERMATCH_OUTLOOK_CLIENT_ID` | — | Your Microsoft app registration (email tracking) |
@@ -368,9 +366,9 @@ The original plan (milestones 1–21) and CV tailoring (milestone 22) are comple
 | Problem | What to do |
 | --- | --- |
 | "Needs OCR" after uploading a PDF | The PDF is a scanned image. Export your CV from its original editor as a text-based PDF or DOCX. |
-| A source shows "Not searched" | It is switched off, needs configuration (Adzuna), or offline mode is on — see Settings. |
+| A source shows "Not searched" | It is switched off, does not cover the filters you chose (e.g. on-site), or offline mode is on — see Settings. |
 | Remotive reports its daily limit | Remotive allows about four searches a day; results are reused for six hours. Try again tomorrow. |
-| Very few jobs found | Use broader keywords, remove filters, or enable Adzuna for on-site jobs in your country. |
+| Very few jobs found | Use broader keywords and remove filters. The supported sources list remote jobs; for on-site roles, add jobs you find elsewhere to the tracker manually. |
 | A company is not found | Smaller or private employers are often not on Wikidata. Try the name without its legal suffix, or check the company's website. |
 | The app is not reachable from another device | By design — it listens on `localhost` only. See [SECURITY.md](SECURITY.md) before changing this. |
 

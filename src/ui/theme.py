@@ -175,9 +175,6 @@ _BASE_CSS = """
 .cm-link-primary { background: var(--cm-color-primary); color: #FFFFFF !important; border-color: var(--cm-color-primary); }
 .cm-link-primary:hover { background: var(--cm-color-primary-hover); }
 .cm-source-link { color: var(--cm-color-primary) !important; font-weight: 600; }
-/* Adzuna's terms require the "Adzuna" label to be at least 116 × 23 px. */
-.cm-source-adzuna { display: inline-flex; align-items: center; justify-content: center; min-width: 116px; min-height: 23px;
-  padding: 2px 10px; border: 1px solid var(--cm-color-border); border-radius: 6px; font-size: 14px; }
 .cm-muted { font-size: 13px; color: var(--cm-color-text-secondary); }
 
 /* ---------- Match summary (inside a job card) ---------- */

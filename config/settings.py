@@ -83,11 +83,6 @@ class Settings(BaseSettings):
     himalayas_enabled: bool = True
     jobicy_enabled: bool = True
     remoteok_enabled: bool = True
-    adzuna_enabled: bool = True
-    adzuna_app_id: str | None = None
-    adzuna_app_key: SecretStr | None = None
-    adzuna_default_country: str | None = Field(None, pattern=r"^[a-z]{2}$")
-    adzuna_daily_limit: int = Field(250, ge=1, le=250)
 
     # --- Application tracking ---------------------------------------------
     tracker_no_response_days: int = Field(21, ge=3, le=120)  # waiting this long counts as "No Response"

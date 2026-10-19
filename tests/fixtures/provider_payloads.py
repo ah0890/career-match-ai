@@ -89,16 +89,3 @@ def remoteok_payload() -> list:
          "date": "2026-10-16T08:00:50+00:00", "description": "Tech leadership"},
     ]
 
-
-def adzuna_payload() -> dict:
-    return {"count": 2, "results": [
-        {"id": "4321", "title": "<strong>Quality</strong> Engineer", "company": {"display_name": "Example Plc"},
-         "location": {"display_name": "Manchester, Greater Manchester", "area": ["UK", "North West"]},
-         "description": "We need a quality engineer with ISO 9001 experience...",
-         "redirect_url": "https://www.adzuna.co.uk/jobs/land/ad/4321", "created": "2026-10-15T09:00:00Z",
-         "salary_min": 40000, "salary_max": 48000, "salary_is_predicted": "1",
-         "contract_type": "permanent", "contract_time": "full_time", "category": {"label": "Engineering Jobs"}},
-        {"id": "4322", "title": "Quality Inspector", "company": {}, "location": {},
-         "description": "Inspection", "redirect_url": "https://www.adzuna.co.uk/jobs/land/ad/4322",
-         "created": "2026-10-14T09:00:00Z", "contract_type": "contract"},
-    ]}

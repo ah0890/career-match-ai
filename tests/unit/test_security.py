@@ -104,9 +104,9 @@ def test_error_messages_never_contain_urls_or_credentials():
         return httpx.Response(403)
     http = ProviderHttp(transport=httpx.MockTransport(handler), sleep=lambda s: None)
     with pytest.raises(Exception) as exc:
-        http.get_json("adzuna", "https://api.adzuna.com/v1/api/jobs/gb/search/1",
+        http.get_json("example", "https://api.jobs.example.com/v1/search",
                       params={"app_id": "ID123", "app_key": "SECRET456"})
-    assert "SECRET456" not in str(exc.value) and "ID123" not in str(exc.value) and "adzuna.com" not in str(exc.value)
+    assert "SECRET456" not in str(exc.value) and "ID123" not in str(exc.value) and "jobs.example.com" not in str(exc.value)
 
 
 def test_server_is_bound_to_this_computer_with_xsrf_protection():
@@ -116,7 +116,7 @@ def test_server_is_bound_to_this_computer_with_xsrf_protection():
 
 
 def test_secrets_are_not_exposed_by_settings(monkeypatch):
-    monkeypatch.setenv("CAREERMATCH_ADZUNA_APP_KEY", "SECRET456")
+    monkeypatch.setenv("CAREERMATCH_GMAIL_CLIENT_SECRET", "SECRET456")
     get_settings.cache_clear()
     s = get_settings()
     assert "SECRET456" not in repr(s) and "SECRET456" not in str(s.model_dump())
