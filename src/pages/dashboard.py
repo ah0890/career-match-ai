@@ -12,7 +12,8 @@ from src.db.engine import session_scope
 from src.matching.recommendations import Label, prioritise
 from src.pages.find_jobs import OUTCOME_KEY, SEARCH_PREFILL_KEY
 from src.services.matching import ranked_matches
-from src.tracker.repository import due_actions
+from src.tracker.recruitment import tracking_summary
+from src.tracker.repository import due_actions, list_applications
 from src.ui.charts import pipeline_figure, score_figure, weekly_figure
 from src.ui.components import (
     ListItem, Metric, Step, empty_state, item_list, metric_grid, page_header, section_header, steps,
@@ -67,6 +68,7 @@ def render() -> None:
     with session_scope(settings.database_url) as s:
         activity = activity_summary(s)
         due = due_actions(s)
+        tracking = tracking_summary(list_applications(s), no_response_days=settings.tracker_no_response_days)
     matches = None
     if cv_usable and outcome is not None and outcome.unique_jobs:
         matches = match_summary(prioritise(ranked_matches(st.session_state, cv, outcome, settings.scoring_weights),
@@ -99,9 +101,9 @@ def render() -> None:
         Metric("Strong matches", str(matches.by_label[Label.APPLY]) if matches else "—",
                f"APPLY among {matches.total} job(s) in your latest results" if matches
                else "Upload a CV and search to see matches"),
-        Metric("Active applications", str(activity.active), "Saved, to apply, applied or interviewing"),
-        Metric("Interviews and offers", f"{activity.status_counts['Interview']} · {activity.status_counts['Offer']}",
-               "Interviews · offers"),
+        Metric("Active applications", str(tracking.active), "Applied, not rejected or withdrawn"),
+        Metric("Interviews and offers", f"{tracking.interviews_received} · {tracking.offers}",
+               "Applications with an interview · with an offer"),
     ])
 
     if due:

@@ -7,14 +7,13 @@ import pytest
 from config.settings import RecommendationThresholds, get_settings
 from src.analytics.dashboard import activity_summary, match_summary, pipeline, weekly_applications
 from src.db.engine import session_scope
-from src.db.models import StatusChange
 from src.jobs.models import SearchQuery
 from src.matching.engine import match_job
 from src.matching.recommendations import Label, prioritise
 from src.providers.base import ProviderResult
 from src.services.history import record_search
 from src.services.job_search import SearchOutcome
-from src.tracker.repository import ApplicationInput, add_manual, set_status
+from src.tracker.repository import ApplicationInput, add_manual, get, set_status
 from src.ui.charts import SERIES, pipeline_figure, score_figure, weekly_figure
 from tests.fixtures.match_factory import DEFAULT_WEIGHTS, SHORT_JOB, job, profile
 
@@ -41,16 +40,16 @@ def test_activity_counts_searches_statuses_and_weekly_applications(url):
         b = add_manual(s, ApplicationInput("Engineer")).id
         add_manual(s, ApplicationInput("Manager", status="Rejected"))
     with session_scope(url) as s:
-        set_status(s, a, "Applied")
-        set_status(s, b, "Applied")
-        set_status(s, b, "Interview")
-        s.add(StatusChange(application_id=a, from_status="Saved", to_status="Applied",
-                           changed_at=datetime(2026, 10, 7, tzinfo=timezone.utc)))  # two weeks earlier
+        set_status(s, a, "Application Submitted")
+        set_status(s, b, "Application Submitted")
+        set_status(s, b, "Interview Scheduled")
+    with session_scope(url) as s:
+        get(s, a).applied_on = date(2026, 10, 7)  # two weeks earlier
     with session_scope(url) as s:
         act = activity_summary(s)
         weeks = weekly_applications(s, TODAY)
     assert act.searches_30d == 1 and act.tracked == 3 and act.active == 2
-    assert pipeline(act.status_counts) == [("Applied", 1), ("Interview", 1), ("Rejected", 1)]
+    assert pipeline(act.status_counts) == [("Application Submitted", 1), ("Interview Scheduled", 1), ("Rejected", 1)]
     by_week = {w.week_start: w.count for w in weeks}
     assert by_week[date(2026, 10, 5)] == 1 and weeks[-1].week_start == TODAY
 

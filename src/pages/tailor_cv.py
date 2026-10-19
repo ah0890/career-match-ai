@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 import streamlit as st
 
@@ -20,7 +21,7 @@ from src.pages.find_jobs import OUTCOME_KEY
 from src.services.matching import ranked_matches
 from src.tailoring.edits import apply_edits, suggest_edits
 from src.tailoring.export import to_docx, to_pdf
-from src.tracker.repository import find_by_job, save_job, set_status
+from src.tracker.repository import APPLIED, TrackerError, find_by_job, record_application
 from src.ui.components import Feature, Metric, metric_grid, notice, page_header, section_header
 from src.ui.layouts import empty_page_body
 
@@ -55,14 +56,29 @@ def _apply_section(match, job_key: str) -> None:
     db = get_settings().database_url
     with session_scope(db) as s:
         tracked = find_by_job(s, job_key)
-        applied = tracked is not None and tracked.status in ("Applied", "Interview", "Offer")
+        applied = tracked is not None and tracked.status in APPLIED
     if applied:
         c2.button("Marked as applied", disabled=True, icon=":material/check:", key="tl_applied_done", width="stretch")
-    elif c2.button("I submitted my application", key="tl_applied", icon=":material/task_alt:", width="stretch"):
-        with session_scope(db) as s:
-            app, _ = save_job(s, match, job)
-            set_status(s, app.id, "Applied")
-        st.toast("Saved to your tracker as Applied.", icon=":material/check_circle:")
+        return
+    with st.expander("Applying by email?", icon=":material/mail:"):
+        st.caption("Add the address you are sending your application to. If you connect your mailbox on the "
+                   "Email Tracking page, replies to it are then matched to this job automatically.")
+        e1, e2 = st.columns(2)
+        contact = e1.text_input("Recruiter or application email", key=f"tl_contact_{job_key}", max_chars=254,
+                                placeholder="jobs@example.com")
+        subject = e2.text_input("Email subject", key=f"tl_subject_{job_key}", max_chars=300,
+                                value=f"Application for {job.title}"[:300])
+        if contact.strip():
+            st.link_button("Open in my email app", "mailto:" + quote(contact.strip()) + "?subject=" + quote(subject),
+                           icon=":material/forward_to_inbox:")
+    if c2.button("I submitted my application", key="tl_applied", icon=":material/task_alt:", width="stretch"):
+        try:
+            with session_scope(db) as s:
+                record_application(s, match, job, contact_email=contact, subject=subject if contact.strip() else None)
+        except TrackerError as exc:
+            st.error(str(exc), icon=":material/error:")
+            return
+        st.toast("Saved to your tracker as Application Submitted.", icon=":material/check_circle:")
         st.rerun()
 
 

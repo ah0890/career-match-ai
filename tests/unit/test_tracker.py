@@ -56,15 +56,17 @@ def test_status_changes_are_recorded_and_applied_date_set(db):
     with session_scope(db) as s:
         app_id = add_manual(s, ApplicationInput("Analyst")).id
     with session_scope(db) as s:
-        set_status(s, app_id, "Applied", today=TODAY)
-        set_status(s, app_id, "Applied", today=TODAY)  # no-op: same status
-        set_status(s, app_id, "Interview")
+        set_status(s, app_id, "Application Submitted", today=TODAY)
+        set_status(s, app_id, "Application Submitted", today=TODAY)  # no-op: same status
+        set_status(s, app_id, "Interview Scheduled")
     with session_scope(db) as s:
         app = list_applications(s)[0]
-        assert app.applied_on == TODAY
+        assert app.applied_on == TODAY and app.applied_at is not None
         assert [(h.from_status, h.to_status) for h in app.history] == [
-            (None, "Saved"), ("Saved", "Applied"), ("Applied", "Interview")]
-        assert status_counts(s)["Interview"] == 1 and status_counts(s)["Offer"] == 0
+            (None, "Saved"), ("Saved", "Application Submitted"), ("Application Submitted", "Interview Scheduled")]
+        assert [e.kind for e in app.events] == ["Saved", "Application Submitted", "Interview Scheduled"]
+        assert app.status_set_manually_at is not None and app.last_activity_at is not None
+        assert status_counts(s)["Interview Scheduled"] == 1 and status_counts(s)["Offer Received"] == 0
 
 
 def test_details_follow_ups_and_delete_cascade(db):

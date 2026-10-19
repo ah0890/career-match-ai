@@ -1,7 +1,7 @@
 """Database engine and sessions.
 
 The database lives on this computer (``data/careermatch.db`` by default, git-ignored).
-Tables are created on first use.
+Tables are created, and older databases migrated, on first use.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+from src.db.migrations import migrate
 from src.db.models import Base
 
 
@@ -29,6 +30,7 @@ def get_engine(url: str) -> Engine:
         def _sqlite_pragmas(dbapi_conn, _record) -> None:  # enforce ON DELETE CASCADE
             dbapi_conn.execute("PRAGMA foreign_keys=ON")
     Base.metadata.create_all(engine)
+    migrate(engine)
     return engine
 
 

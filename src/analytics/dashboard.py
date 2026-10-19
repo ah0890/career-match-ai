@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.db.models import SearchHistory, StatusChange
+from src.db.models import Application, SearchHistory
 from src.matching.recommendations import Label, RankedMatch
 from src.tracker.repository import ACTIVE, STATUS_NAMES, status_counts
 
@@ -51,15 +51,13 @@ def _monday(d: date) -> date:
 
 
 def weekly_applications(session: Session, today: date | None = None, weeks: int = 12) -> tuple[WeekCount, ...]:
-    """How many applications moved to Applied in each of the last ``weeks`` weeks (oldest first)."""
+    """How many applications were submitted in each of the last ``weeks`` weeks (oldest first)."""
     today = today or date.today()
     first = _monday(today) - timedelta(weeks=weeks - 1)
-    since = datetime(first.year, first.month, first.day, tzinfo=timezone.utc)
     counts = {first + timedelta(weeks=i): 0 for i in range(weeks)}
-    rows = session.scalars(select(StatusChange.changed_at).where(StatusChange.to_status == "Applied",
-                                                                  StatusChange.changed_at >= since))
-    for changed_at in rows:
-        week = _monday(changed_at.date())
+    rows = session.scalars(select(Application.applied_on).where(Application.applied_on >= first))
+    for applied_on in rows:
+        week = _monday(applied_on)
         if week in counts:
             counts[week] += 1
     return tuple(WeekCount(w, n) for w, n in counts.items())

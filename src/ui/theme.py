@@ -101,7 +101,7 @@ _BASE_CSS = """
 /* ---------- Status legend ---------- */
 .cm-status-legend { list-style: none; margin: 0; padding: var(--cm-space-sm) var(--cm-space-lg); }
 .cm-status-legend li {
-  display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: var(--cm-space-md);
+  display: grid; grid-template-columns: 190px 1fr; align-items: center; gap: var(--cm-space-md);
   padding: 10px 0; border-bottom: 1px solid var(--cm-color-border); font-size: 14px; color: var(--cm-color-text-secondary);
 }
 .cm-status-legend .cm-badge { justify-self: start; }
@@ -227,6 +227,15 @@ _BASE_CSS = """
 .cm-study h3 { font-size: 16px; font-weight: 650; margin: var(--cm-space-sm) 0 4px 0; padding: 0; color: var(--cm-color-text-primary); }
 .cm-study p { font-size: 14px; line-height: 1.55; margin: 0 0 4px 0; color: var(--cm-color-text-secondary); }
 .cm-q-material { margin: 4px 0 var(--cm-space-sm) 0; padding-left: 20px; font-size: 14px; line-height: 1.5; color: var(--cm-color-text-primary); }
+
+/* ---------- Application timeline ---------- */
+.cm-timeline { list-style: none; margin: 0; padding: var(--cm-space-sm) var(--cm-space-lg); }
+.cm-timeline li { display: grid; grid-template-columns: 96px 1fr; gap: var(--cm-space-md); padding: 12px 0;
+  border-bottom: 1px solid var(--cm-color-border); position: relative; }
+.cm-timeline li:last-child { border-bottom: none; }
+.cm-tl-date { font-size: 13px; font-weight: 600; color: var(--cm-color-text-secondary); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.cm-tl-summary { font-size: 14px; color: var(--cm-color-text-primary); margin-top: 4px; line-height: 1.5; }
+.cm-timeline a { color: var(--cm-color-link); }
 
 /* ---------- Premium surfaces ----------
    Keyed Streamlit containers get an "st-key-KEY" class; only our own cm_* keys are styled. */

@@ -88,6 +88,9 @@ class Settings(BaseSettings):
     adzuna_default_country: str | None = Field(None, pattern=r"^[a-z]{2}$")
     adzuna_daily_limit: int = Field(250, ge=1, le=250)
 
+    # --- Application tracking ---------------------------------------------
+    tracker_no_response_days: int = Field(21, ge=3, le=120)  # waiting this long counts as "No Response"
+
     # --- Backend API (accounts, used by the browser extension) -------------
     api_database_url: str = f"sqlite:///{(DATA_DIR / 'careermatch_api.db').as_posix()}"
     api_host: str = "127.0.0.1"  # loopback only unless you deliberately change it (see SECURITY.md)

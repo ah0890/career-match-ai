@@ -407,14 +407,26 @@ def test_tracker_add_change_status_and_delete():
     form_inputs[1].input("Example Devices")
     next(b for b in at.button if b.label == "Add to tracker").click().run()
     assert not at.exception
-    html = _html(at)
-    assert "Quality Engineer" in html and "1 application" in html
-    app_key = next(k for k in at.session_state if str(k).startswith("at_status_"))
-    at.selectbox(key=app_key).set_value("Applied").run()
-    html = _html(at)
-    assert "Applied" in html
-    at.button(key=app_key.replace("at_status_", "at_delete_")).click().run()
-    at.button(key=app_key.replace("at_status_", "at_delete_yes_")).click().run()
+    table = at.dataframe[0].value
+    assert list(table["Job title"]) == ["Quality Engineer"]
+    assert list(table["Current status"]) == ["Application Submitted"]
+    assert "Total applications" in _html(at)
+
+    from config.settings import get_settings
+    from src.db.engine import session_scope
+    from src.tracker.repository import list_applications
+    with session_scope(get_settings().database_url) as s:
+        app_id = list_applications(s)[0].id
+    at.session_state["at_selected"] = app_id  # what selecting the table row does
+    at.run()
+    at.selectbox(key=f"at_status_sel_{app_id}").set_value("Interview Invitation")
+    next(b for b in at.button if b.label == "Update status").click().run()
+    assert not at.exception
+    assert list(at.dataframe[0].value["Current status"]) == ["Interview Invitation"]
+    assert list(at.dataframe[0].value["Interviews"]) == [1]
+    assert "Status set to Interview Invitation" in _html(at)  # on the timeline
+    at.button(key=f"at_delete_{app_id}").click().run()
+    at.button(key=f"at_delete_yes_{app_id}").click().run()
     assert "No applications tracked yet" in _html(at)
 
 
@@ -458,7 +470,7 @@ def test_dashboard_shows_metrics_charts_and_top_matches_from_real_data():
     with session_scope(get_settings().database_url) as s:
         app_id = add_manual(s, ApplicationInput("Quality Engineer", "Example Devices")).id
     with session_scope(get_settings().database_url) as s:
-        set_status(s, app_id, "Applied")
+        set_status(s, app_id, "Application Submitted")
     jobs = [job(), job(source_job_id="2", title="Quality Lead"), job(source_job_id="3", title="Quality Manager")]
     at = _render_page_with("dashboard", cv=_text_cv(), jobs=jobs)
     assert not at.exception
