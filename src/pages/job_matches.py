@@ -15,7 +15,9 @@ from src.pages.company_intelligence import PREFILL_KEY as COMPANY_PREFILL_KEY
 from src.pages.find_jobs import OUTCOME_KEY
 from src.pages.interview_preparation import PREFILL_KEY as INTERVIEW_PREFILL_KEY
 from src.matching.improvements import improvement_plan
+from src.db.engine import session_scope
 from src.services.matching import match_profile, ranked_matches
+from src.tracker.repository import find_by_job, save_job
 from src.ui.components import Feature, Metric, empty_state, metric_grid, notice, page_header, section_header
 from src.ui.layouts import call_to_action, empty_page_body
 from src.ui.navigation import go_to
@@ -162,6 +164,8 @@ def render() -> None:
     start = (min(st.session_state.get(_PAGE_KEY, 1), pages) - 1) * PER_PAGE
     st.caption(f"Showing {start + 1}–{start + len(page_items)} of {len(shown)} job(s)"
                + (f" ({len(ranked) - len(shown)} hidden by filters)." if len(shown) < len(ranked) else "."))
+    with session_scope(settings.database_url) as s:
+        saved = {m.result.job.key for m in page_items if find_by_job(s, m.result.job.key) is not None}
     for i, m in enumerate(page_items):
         st.html(match_card_html(m.result, m.recommendation))
         with st.expander(f"Why {m.recommendation.label.value} — score {m.result.score}/100, "
@@ -171,7 +175,7 @@ def render() -> None:
             render_improvement_plan(improvement_plan(match_profile(st.session_state, cv), m.result))
         with st.expander("Full job description", icon=":material/article:"):
             st.html(description_html(m.result.job))
-        a1, a2, _ = st.columns([1, 1, 1])
+        a1, a2, a3 = st.columns([1, 1, 1])
         if a1.button("Prepare for interview", icon=":material/school:", key=f"jm_prep_{start + i}", width="stretch"):
             st.session_state[INTERVIEW_PREFILL_KEY] = m.result.job.key
             go_to("interview-preparation")
@@ -179,6 +183,14 @@ def render() -> None:
                                               key=f"jm_research_{start + i}", width="stretch"):
             st.session_state[COMPANY_PREFILL_KEY] = m.result.job.company
             go_to("company-intelligence")
+        if m.result.job.key in saved:
+            a3.button("Saved to tracker", icon=":material/check:", key=f"jm_saved_{start + i}", disabled=True,
+                      width="stretch")
+        elif a3.button("Save to tracker", icon=":material/bookmark_add:", key=f"jm_save_{start + i}", width="stretch"):
+            with session_scope(settings.database_url) as s:
+                save_job(s, m, m.result.job)
+            st.toast(f"Saved {m.result.job.title} to your tracker.", icon=":material/bookmark_added:")
+            st.rerun()
         if i < len(page_items) - 1:
             st.write("")
     _pager(pages, "bottom")

@@ -389,6 +389,40 @@ def test_interview_study_plan_tracks_progress():
     assert "Learn the essentials of Kubernetes" in html and "Official documentation" in html
     key = f"ip_status_{jobs[0].key}_learn:Kubernetes"
     at.segmented_control(key=key).set_value("Prepared").run()
-    assert at.session_state["ip_progress"][jobs[0].key]["learn:Kubernetes"] == "Prepared"
+    from config.settings import get_settings
+    from src.db.engine import session_scope
+    from src.tracker.repository import study_statuses
+
+    with session_scope(get_settings().database_url) as s:
+        assert study_statuses(s, jobs[0].key)["learn:Kubernetes"] == "Prepared"
     bar = at.get("progress")[0]
     assert bar.proto.text == "1 of 4 topics prepared" and bar.value == 25
+
+
+def test_tracker_add_change_status_and_delete():
+    at = _render("application_tracker")
+    assert "No applications tracked yet" in _html(at)
+    form_inputs = at.text_input
+    form_inputs[0].input("Quality Engineer")
+    form_inputs[1].input("Example Devices")
+    next(b for b in at.button if b.label == "Add to tracker").click().run()
+    assert not at.exception
+    html = _html(at)
+    assert "Quality Engineer" in html and "1 application" in html
+    app_key = next(k for k in at.session_state if str(k).startswith("at_status_"))
+    at.selectbox(key=app_key).set_value("Applied").run()
+    html = _html(at)
+    assert "Applied" in html
+    at.button(key=app_key.replace("at_status_", "at_delete_")).click().run()
+    at.button(key=app_key.replace("at_status_", "at_delete_yes_")).click().run()
+    assert "No applications tracked yet" in _html(at)
+
+
+def test_job_matches_save_to_tracker():
+    from tests.fixtures.match_factory import job
+
+    jobs = [job()]
+    at = _render_page_with("job_matches", cv=_text_cv(), jobs=jobs)
+    at.button(key="jm_save_0").click().run()
+    assert not at.exception
+    assert at.button(key="jm_saved_0").disabled
