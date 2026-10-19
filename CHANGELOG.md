@@ -10,7 +10,64 @@ and decisions worth knowing).
 
 ### Planned
 
-- Milestone 14 — study plans for the skills a chosen job needs, with progress tracking.
+- Milestone 17 — dashboard analytics from your real activity (searches, matches, applications).
+
+## Milestone 16 — Caching and search history — 2026-10-19 (`2005bb6`)
+
+### Added
+
+- Recent searches on Find Jobs with result counts; "Search again" restores every filter.
+- Settings shows stored job data, with buttons to clear cached responses and search history.
+
+### Changed
+
+- Job-source responses and daily request counts are now stored in the local database, so restarting
+  the app neither repeats requests nor resets a source's daily limit.
+- Cached responses are served within each source's cache period, including in offline mode.
+
+### Notes
+
+- Clearing cached data keeps the daily request counts, so source limits are always respected.
+- Only search terms and counts are kept in history (the 50 most recent), never CV data.
+- 421 offline tests.
+
+## Milestone 15 — Application tracker — 2026-10-19 (`499aaf1`)
+
+### Added
+
+- Local SQLite database (under `data/`, git-ignored), created on first use.
+- Application tracker: Saved, To Apply, Applied, Interview, Offer, Rejected and Withdrawn, with notes,
+  applied date, next action and follow-up date. Every status change is recorded with its date.
+- "Save to tracker" on Job Matches stores a snapshot of the match score and recommendation; the same
+  job is never saved twice. Jobs can also be added manually, with validated links.
+- Counts per status and a warning for follow-ups due within a week; confirmed deletion.
+
+### Changed
+
+- Study plan progress is now saved in the database instead of the browser session.
+
+### Notes
+
+- Only you change a status — opening a link never marks a job as applied. No CV text is stored.
+- Tests always use a temporary database, never the real one.
+- 411 offline tests.
+
+## Milestone 14 — Study plans — 2026-10-19 (`0035a17`)
+
+### Added
+
+- Study plan tab on Interview Preparation: essential and required skills your CV does not show,
+  listed skills that need a worked example, responsibilities your CV does not reflect, optional
+  preferred skills and answer practice, ordered by priority.
+- Optional interview date orders the plan around the days left.
+- Not started, Preparing and Prepared status per topic with a progress bar.
+
+### Notes
+
+- Effort is shown as Short, Medium or Long — a relative suggestion, not an invented time estimate.
+- Links point only to official documentation for well-known tools; other topics have no link rather
+  than a guessed one.
+- 403 offline tests.
 
 ## Milestone 13 — Interview preparation — 2026-10-19 (`c5d533f`)
 

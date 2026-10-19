@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 13 — interview preparation). CVs can be uploaded, parsed and analysed, real jobs can be searched across several permitted job sources at once, and results are ranked against your CV with the evidence behind every score, a recommendation (APPLY, APPLY AFTER IMPROVEMENT or DON'T PRIORITIZE), filters and side-by-side comparison. Each job also gets a CV improvement plan, sourced company research and interview preparation. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated. See [CHANGELOG.md](CHANGELOG.md) for what changed in each milestone.
+> **Status:** early development (Milestone 16 — caching and search history). CVs can be uploaded, parsed and analysed, real jobs can be searched across several permitted job sources at once, and results are ranked against your CV with the evidence behind every score, a recommendation (APPLY, APPLY AFTER IMPROVEMENT or DON'T PRIORITIZE), filters and side-by-side comparison. Each job also gets a CV improvement plan, sourced company research, interview preparation with a study plan, and can be saved to a local application tracker. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated. See [CHANGELOG.md](CHANGELOG.md) for what changed in each milestone.
 
 ## Planned features
 
@@ -21,8 +21,10 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | Keyword gaps and CV improvement suggestions | ✅ Done |
 | Company intelligence with source attribution (Wikidata, Wikipedia) | ✅ Done |
 | Interview preparation | ✅ Done |
-| Study plans with progress tracking | Planned |
-| Application tracker & dashboard | Planned |
+| Study plans with progress tracking | ✅ Done |
+| Application tracker (local SQLite) | ✅ Done |
+| Persistent source caches, request budgets and search history | ✅ Done |
+| Dashboard analytics | Planned |
 | CV version management | Planned |
 
 Job sources are integrated only through official APIs, authorised search providers, or public feeds whose terms permit it. A source is listed as supported only once an adapter genuinely returns results.
@@ -40,7 +42,9 @@ src/cv/ats.py          Transparent ATS scoring and job keyword alignment
 src/matching/skills.py Skill taxonomy and boundary-aware skill extraction
 src/matching/          Requirement extraction, matching engine, recommendations, filtering/comparison, CV improvement plan
 src/company/           Company lookup (Wikidata, Wikipedia) and relevance to your search
-src/interview/         Interview preparation plans
+src/interview/         Interview preparation and study plans
+src/db/                Local database (SQLAlchemy models, engine, persistent HTTP cache)
+src/tracker/           Application tracker operations
 src/jobs/              Job models, normalisation and local filtering
 src/providers/         Provider interface, HTTP layer (timeouts, retries, budgets, cache), registry, adapters
 src/services/          Multi-source search service and shared runtime resources
@@ -196,6 +200,7 @@ python -m playwright install chromium
 - CVs and career data are treated as sensitive personal data and stay on your machine by default.
 - Uploaded CVs are processed in memory; the original file is not stored and CV content is never logged.
 - `.env`, databases, uploaded documents and everything under `data/` are git-ignored.
+- The local database holds tracked applications, study progress, search history and cached job-source responses — never CV text.
 - No CV content is sent to external services unless an optional integration is added later and you explicitly consent.
 - Company research sends only the company name to Wikidata and Wikipedia.
 
