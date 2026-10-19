@@ -51,3 +51,19 @@ def test_css_variables_include_every_colour():
     css = css_variables()
     for name, value in COLORS.items():
         assert f"--cm-color-{name.replace('_', '-')}: {value};" in css
+
+
+def test_stylesheet_has_no_angle_brackets_inside_the_style_block():
+    # Streamlit's HTML sanitiser drops a whole <style> block that contains anything tag-like.
+    from src.ui.theme import build_stylesheet
+    body = build_stylesheet().removeprefix("<style>").removesuffix("</style>")
+    assert "<" not in body
+
+
+def test_sidebar_colours_meet_wcag_aa():
+    assert contrast(COLORS["sidebar_text"], COLORS["sidebar"]) >= 4.5
+    assert contrast(COLORS["sidebar_muted"], COLORS["sidebar"]) >= 4.5
+    assert contrast(COLORS["sidebar_text"], COLORS["sidebar_active"]) >= 4.5
+    sidebar = tomllib.loads(CONFIG.read_text(encoding="utf-8"))["theme"]["sidebar"]
+    assert sidebar["backgroundColor"].upper() == COLORS["sidebar"].upper()
+    assert sidebar["textColor"].upper() == COLORS["sidebar_text"].upper()

@@ -7,22 +7,27 @@ from there); a unit test keeps the two in sync.
 from __future__ import annotations
 
 COLORS: dict[str, str] = {
-    "primary": "#243B64",
-    "primary_hover": "#1B2F52",
-    "accent": "#4F6BED",
-    "link": "#3B55D9",
-    "background": "#F6F8FC",
+    "primary": "#13294B",
+    "primary_hover": "#0B1C36",
+    "accent": "#2563EB",
+    "link": "#1D4ED8",
+    "background": "#F4F6FA",
     "surface": "#FFFFFF",
-    "surface_subtle": "#EEF2F8",
-    "text_primary": "#172033",
-    "text_secondary": "#5B6476",
-    "border": "#E3E8F0",
-    "success": "#0F7458",
-    "success_bg": "#E8F6F0",
-    "warning": "#8F5E12",
-    "warning_bg": "#FFF5DF",
-    "danger": "#B3323D",
-    "danger_bg": "#FDECEE",
+    "surface_subtle": "#EDF1F7",
+    "text_primary": "#0F172A",
+    "text_secondary": "#4A5568",
+    "border": "#E1E7EF",
+    "success": "#04694F",
+    "success_bg": "#E6F5EE",
+    "warning": "#8A4B08",
+    "warning_bg": "#FEF4E2",
+    "danger": "#B42318",
+    "danger_bg": "#FDECEB",
+    # Dark navigation sidebar and dashboard hero.
+    "sidebar": "#0C1A31",
+    "sidebar_active": "#1B2D4F",
+    "sidebar_text": "#D5DEEC",
+    "sidebar_muted": "#8FA0BC",
 }
 
 # System font stack — no externally hosted font is required. Inter / Manrope are
@@ -46,10 +51,11 @@ FONT_SIZES: dict[str, int] = {
 # 8px spacing rhythm (with a 4px half-step).
 SPACING: dict[str, int] = {"xs": 4, "sm": 8, "md": 16, "lg": 24, "xl": 32, "xxl": 48}
 
-RADII: dict[str, int] = {"sm": 6, "md": 10, "lg": 14, "pill": 999}
+RADII: dict[str, int] = {"sm": 6, "md": 10, "lg": 14, "xl": 18, "pill": 999}
 
 SHADOWS: dict[str, str] = {
-    "card": "0 1px 2px rgba(23, 32, 51, 0.04), 0 1px 3px rgba(23, 32, 51, 0.06)",
+    "card": "0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.04)",
+    "raised": "0 2px 4px rgba(15, 23, 42, 0.05), 0 12px 28px rgba(15, 23, 42, 0.08)",
 }
 
 

@@ -49,7 +49,7 @@ def _apply_section(match, job_key: str) -> None:
     c1, c2 = st.columns(2)
     if url:
         c1.link_button("Apply on employer site" if job.apply_url else f"Open listing on {job.source_name}", url,
-                       icon=":material/open_in_new:", width="stretch")
+                       icon=":material/open_in_new:", type="primary", width="stretch")
     else:
         c1.caption("The source provided no valid link for this job.")
     db = get_settings().database_url
@@ -136,6 +136,7 @@ def render() -> None:
     slug = _slug(f"cv {job.title} {job.company or ''}")
     d1, d2 = st.columns(2)
     d1.download_button("Download DOCX", to_docx(final), file_name=f"{slug}.docx", icon=":material/description:",
+                       type="primary",
                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document", width="stretch")
     d2.download_button("Download PDF", to_pdf(final), file_name=f"{slug}.pdf", mime="application/pdf",
                        icon=":material/picture_as_pdf:", width="stretch")

@@ -1,12 +1,12 @@
 # Streamlit theme — mirrors src/ui/tokens.py (kept in sync by tests/unit/test_tokens.py).
 [theme]
 base = "light"
-primaryColor = "#243B64"
-backgroundColor = "#F6F8FC"
-secondaryBackgroundColor = "#EEF2F8"
-textColor = "#172033"
-borderColor = "#E3E8F0"
-linkColor = "#3B55D9"
+primaryColor = "#13294B"
+backgroundColor = "#F4F6FA"
+secondaryBackgroundColor = "#EDF1F7"
+textColor = "#0F172A"
+borderColor = "#E1E7EF"
+linkColor = "#1D4ED8"
 linkUnderline = false
 # System font stack: Inter/Manrope are used when installed locally; nothing is downloaded.
 font = "Inter, Manrope, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
@@ -16,20 +16,23 @@ baseFontSize = 15
 baseRadius = "10px"
 buttonRadius = "8px"
 showWidgetBorder = true
-showSidebarBorder = true
-greenColor = "#0F7458"
-greenBackgroundColor = "#E8F6F0"
-yellowColor = "#8F5E12"
-yellowBackgroundColor = "#FFF5DF"
-redColor = "#B3323D"
-redBackgroundColor = "#FDECEE"
-blueColor = "#3B55D9"
-chartCategoricalColors = ["#243B64", "#4F6BED", "#0F7458", "#8F5E12", "#B3323D", "#8A94A6"]
+showSidebarBorder = false
+greenColor = "#04694F"
+greenBackgroundColor = "#E6F5EE"
+yellowColor = "#8A4B08"
+yellowBackgroundColor = "#FEF4E2"
+redColor = "#B42318"
+redBackgroundColor = "#FDECEB"
+blueColor = "#1D4ED8"
+chartCategoricalColors = ["#2563EB", "#13294B", "#04694F", "#8A4B08", "#B42318", "#8A94A6"]
 
 [theme.sidebar]
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#EEF2F8"
-textColor = "#172033"
+# Dark navy navigation (contrast checked in tests/unit/test_tokens.py).
+backgroundColor = "#0C1A31"
+secondaryBackgroundColor = "#1B2D4F"
+textColor = "#D5DEEC"
+borderColor = "#1B2D4F"
+primaryColor = "#7FA6FF"
 
 [server]
 # Only this computer can open the app: it holds personal career data. Change to "0.0.0.0" only

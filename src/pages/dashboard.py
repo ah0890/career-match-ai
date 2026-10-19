@@ -23,9 +23,17 @@ from src.ui.tracker_view import follow_up_label
 _CHART_CONFIG = {"displayModeBar": False, "responsive": True}
 
 
-def _quick_search() -> None:
-    with st.container(border=True):
-        st.markdown("##### Start a job search")
+_HERO_POINTS = ("Transparent, explainable scores", "Permitted job sources only", "Your data stays on this computer")
+
+
+def _hero() -> None:
+    """Welcome band with the quick search: the first thing a returning user needs."""
+    with st.container(key="cm_hero"):
+        page_header(
+            "Welcome to CareerMatch AI",
+            "Upload your CV, discover relevant vacancies and see — with evidence — how well each one fits.",
+            eyebrow="Dashboard",
+        )
         with st.form("dashboard_quick_search", border=False):
             c1, c2, c3 = st.columns([5, 3, 2], vertical_alignment="bottom")
             query = c1.text_input("Job title or keywords", placeholder="e.g. Quality Engineer")
@@ -33,6 +41,7 @@ def _quick_search() -> None:
             submitted = c3.form_submit_button(
                 "Search jobs", type="primary", icon=":material/search:", width="stretch"
             )
+        st.html('<ul class="cm-hero-points">' + "".join(f"<li>{p}</li>" for p in _HERO_POINTS) + "</ul>")
         if submitted:
             if not query.strip():
                 st.error("Enter a job title or keywords to search.")
@@ -42,18 +51,14 @@ def _quick_search() -> None:
 
 
 def _chart(fig, table: pd.DataFrame, key: str) -> None:
-    st.plotly_chart(fig, config=_CHART_CONFIG, key=key, width="stretch")
-    with st.expander("View as table"):
-        st.dataframe(table, hide_index=True, width="stretch")
+    with st.container(key=f"cm_chart_{key}"):
+        st.plotly_chart(fig, config=_CHART_CONFIG, key=key, width="stretch")
+        with st.expander("View as table"):
+            st.dataframe(table, hide_index=True, width="stretch")
 
 
 def render() -> None:
-    page_header(
-        "Welcome to CareerMatch AI",
-        "Upload your CV, discover relevant vacancies and see — with evidence — how well each one fits.",
-        eyebrow="Dashboard",
-    )
-    _quick_search()
+    _hero()
 
     settings = get_settings()
     cv = get_active_cv(st.session_state)

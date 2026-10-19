@@ -14,6 +14,20 @@ and decisions worth knowing).
   need a backend API with user accounts.
 - Milestone 26 — multi-language support.
 
+## Design refresh — 2026-10-19
+
+### Changed
+
+- New palette: deep navy and slate with one crisp blue accent; every text pair still meets WCAG 2.2 AA.
+- Dark navy navigation sidebar with a light logo.
+- Dashboard opens with a welcome band holding the quick search.
+- Each job on Job Matches is one card, with its details and actions inside it, and lifts on hover.
+- Refined headers, metric cards, step numbers and chart cards; primary actions stand out on Tailor CV.
+
+### Fixed
+
+- A test now guards against anything tag-like in the stylesheet, which would make Streamlit drop it.
+
 ## Milestone 23a — Backend API with accounts — 2026-10-19
 
 ### Added

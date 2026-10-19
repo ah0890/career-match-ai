@@ -168,33 +168,32 @@ def render() -> None:
     with session_scope(settings.database_url) as s:
         saved = {m.result.job.key for m in page_items if find_by_job(s, m.result.job.key) is not None}
     for i, m in enumerate(page_items):
-        st.html(match_card_html(m.result, m.recommendation))
-        with st.expander(f"Why {m.recommendation.label.value} — score {m.result.score}/100, "
-                         f"{m.result.confidence.lower()} confidence", icon=":material/analytics:"):
-            render_breakdown(m.result, m.recommendation)
-        with st.expander("Improve your CV for this job", icon=":material/edit_note:"):
-            render_improvement_plan(improvement_plan(match_profile(st.session_state, cv), m.result))
-        with st.expander("Full job description", icon=":material/article:"):
-            st.html(description_html(m.result.job))
-        a0, a1, a2, a3 = st.columns(4)
-        if a0.button("Tailor CV", icon=":material/edit_document:", key=f"jm_tailor_{start + i}", width="stretch"):
-            st.session_state[TAILOR_PREFILL_KEY] = m.result.job.key
-            go_to("tailor-cv")
-        if a1.button("Prepare for interview", icon=":material/school:", key=f"jm_prep_{start + i}", width="stretch"):
-            st.session_state[INTERVIEW_PREFILL_KEY] = m.result.job.key
-            go_to("interview-preparation")
-        if m.result.job.company and a2.button("Research company", icon=":material/domain:",
-                                              key=f"jm_research_{start + i}", width="stretch"):
-            st.session_state[COMPANY_PREFILL_KEY] = m.result.job.company
-            go_to("company-intelligence")
-        if m.result.job.key in saved:
-            a3.button("Saved to tracker", icon=":material/check:", key=f"jm_saved_{start + i}", disabled=True,
-                      width="stretch")
-        elif a3.button("Save to tracker", icon=":material/bookmark_add:", key=f"jm_save_{start + i}", width="stretch"):
-            with session_scope(settings.database_url) as s:
-                save_job(s, m, m.result.job)
-            st.toast(f"Saved {m.result.job.title} to your tracker.", icon=":material/bookmark_added:")
-            st.rerun()
-        if i < len(page_items) - 1:
-            st.write("")
+        with st.container(key=f"cm_job_{start + i}"):
+            st.html(match_card_html(m.result, m.recommendation))
+            with st.expander(f"Why {m.recommendation.label.value} — score {m.result.score}/100, "
+                             f"{m.result.confidence.lower()} confidence", icon=":material/analytics:"):
+                render_breakdown(m.result, m.recommendation)
+            with st.expander("Improve your CV for this job", icon=":material/edit_note:"):
+                render_improvement_plan(improvement_plan(match_profile(st.session_state, cv), m.result))
+            with st.expander("Full job description", icon=":material/article:"):
+                st.html(description_html(m.result.job))
+            a0, a1, a2, a3 = st.columns(4)
+            if a0.button("Tailor CV", icon=":material/edit_document:", key=f"jm_tailor_{start + i}", width="stretch"):
+                st.session_state[TAILOR_PREFILL_KEY] = m.result.job.key
+                go_to("tailor-cv")
+            if a1.button("Prepare for interview", icon=":material/school:", key=f"jm_prep_{start + i}", width="stretch"):
+                st.session_state[INTERVIEW_PREFILL_KEY] = m.result.job.key
+                go_to("interview-preparation")
+            if m.result.job.company and a2.button("Research company", icon=":material/domain:",
+                                                  key=f"jm_research_{start + i}", width="stretch"):
+                st.session_state[COMPANY_PREFILL_KEY] = m.result.job.company
+                go_to("company-intelligence")
+            if m.result.job.key in saved:
+                a3.button("Saved to tracker", icon=":material/check:", key=f"jm_saved_{start + i}", disabled=True,
+                          width="stretch")
+            elif a3.button("Save to tracker", icon=":material/bookmark_add:", key=f"jm_save_{start + i}", width="stretch"):
+                with session_scope(settings.database_url) as s:
+                    save_job(s, m, m.result.job)
+                st.toast(f"Saved {m.result.job.title} to your tracker.", icon=":material/bookmark_added:")
+                st.rerun()
     _pager(pages, "bottom")
