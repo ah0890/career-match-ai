@@ -9,11 +9,13 @@ and decisions worth knowing).
 ## [Unreleased]
 
 ### Planned
+
 - Milestone 14 — study plans for the skills a chosen job needs, with progress tracking.
 
 ## Milestone 13 — Interview preparation — 2026-10-19 (`c5d533f`)
 
 ### Added
+
 - Likely interview questions for a chosen job: opening and motivation, technical questions for the
   skills your CV shows, behavioural questions for soft skills, questions about the role's
   responsibilities and honest questions about gaps.
@@ -26,6 +28,7 @@ and decisions worth knowing).
 - "Prepare for interview" and "Research company" buttons on every job in Job Matches.
 
 ### Notes
+
 - Questions are predictions from the job description, not the employer's actual questions. Answers
   are never written for you.
 - 397 offline tests.
@@ -33,6 +36,7 @@ and decisions worth knowing).
 ## Milestone 12 — Company intelligence — 2026-10-19 (`3cd2391`)
 
 ### Added
+
 - Company lookup on Wikidata. Matching entries are listed for you to confirm, with likely
   organisations first; nothing is assumed.
 - Company profile: Wikipedia summary with attribution and licence; key facts (industry, founding date,
@@ -43,9 +47,11 @@ and decisions worth knowing).
 - Companies from your search results can be picked directly.
 
 ### Changed
+
 - Requests identify the app with a contact URL, as the Wikimedia API policy asks.
 
 ### Notes
+
 - Former office holders and deprecated statements are excluded; missing facts are listed as "not
   available".
 - Wikidata and Wikipedia are volunteer-edited, so profiles recommend checking important facts on the
@@ -57,6 +63,7 @@ and decisions worth knowing).
 ## Milestone 11 — Keyword gaps and CV improvement plan — 2026-10-19 (`6d52ee8`)
 
 ### Added
+
 - For each job: how your CV evidences each required skill — in experience, in education, listed
   without context, or not found — with the job's own sentence.
 - Prioritised suggestions: essential and required skills not found, skills listed but not shown in a
@@ -67,6 +74,7 @@ and decisions worth knowing).
   job" tab, which now also accepts an optional job title.
 
 ### Notes
+
 - Suggestions never supply content; they ask you to state only what is true. Bullet tips never
   borrow figures from elsewhere in your CV.
 - 368 offline tests.
@@ -74,6 +82,7 @@ and decisions worth knowing).
 ## Milestone 10 — Match filters, sorting and comparison — 2026-10-19 (`ac1afdd`)
 
 ### Added
+
 - Filters on Job Matches: recommendation, minimum score, source, work arrangement, only jobs with no
   essential gaps, limited-information jobs and expired listings (hidden by default).
 - Sorting by recommendation, score or posting date.
@@ -83,6 +92,7 @@ and decisions worth knowing).
 - Results are paged, 15 jobs per page.
 
 ### Notes
+
 - Jobs without a posting date sort after dated ones (their age is unknown, not new), and
   low-confidence matches always stay after the others.
 - Unknown values in the comparison are shown as "Not provided", never estimated.
@@ -91,6 +101,7 @@ and decisions worth knowing).
 ## Milestone 9 — Recommendations — 2026-10-19 (`07cdaff`)
 
 ### Added
+
 - APPLY, APPLY AFTER IMPROVEMENT and DON'T PRIORITIZE for every match, from the configured
   thresholds (defaults 80 and 70).
 - Reasons for each label, and caveats for possibly stale listings, limited job information and
@@ -99,6 +110,7 @@ and decisions worth knowing).
 - Counts per recommendation on the Job Matches page; results ordered by recommendation, then score.
 
 ### Notes
+
 - A job with an essential requirement the CV does not show is never marked APPLY, whatever its score.
 - Expired listings are always DON'T PRIORITIZE.
 - Actions only ask you to make explicit what you genuinely have ("if you have used any of them…");
@@ -109,6 +121,7 @@ and decisions worth knowing).
 ## Milestone 8 — Explainable CV-to-job matching — 2026-10-19 (`5f43e24`)
 
 ### Added
+
 - Job requirement extraction from descriptions: required, preferred and essential skills, years of
   experience, degree level and responsibilities, using the ad's section headings ("Requirements",
   "Nice to have", "Responsibilities" and common variants) and wording ("must", "is a plus").
@@ -124,10 +137,12 @@ and decisions worth knowing).
   and missing, and a per-job score breakdown with evidence and gaps.
 
 ### Changed
+
 - Job cards can show a match summary while keeping source attribution and original-listing links.
 - Deleting the CV also clears its match results.
 
 ### Notes
+
 - Information the job does not state (for example, no degree requirement) is "not assessed" and its
   weight is shared among the other components; it never counts against the candidate.
 - Something the job asks for that the CV does not show scores zero and is worded "not found in your
@@ -140,6 +155,7 @@ and decisions worth knowing).
 ## Milestone 7 — Normalisation, deduplication and freshness — 2026-10-18 (`c86b5a7`)
 
 ### Added
+
 - Company and title normalisation (legal suffixes, remote markers, Sr/Jr) and canonical URLs without
   tracking parameters.
 - Conservative cross-source deduplication; other sources of the same vacancy shown as "Also listed on".
@@ -147,11 +163,13 @@ and decisions worth knowing).
 - Expiry dates from Himalayas.
 
 ### Changed
+
 - The richest posting is kept as the primary one; a missing posting date is filled from another
   source of the same vacancy.
 - The results header reports how many duplicates were merged.
 
 ### Notes
+
 - A listing being online never implies the job is open; listing pages are never presented as
   application links.
 - 282 offline tests.
@@ -159,15 +177,18 @@ and decisions worth knowing).
 ## Milestone 6 — Multi-source job discovery — 2026-10-18 (`1814d78`)
 
 ### Added
+
 - Job sources with verified terms: Himalayas, Jobicy and Remote OK (public APIs) and Adzuna (official
   API with a free key, 19 countries).
 - Country filter, salary period support and per-source enable switches.
 - Notes on every search for filters a source cannot apply.
 
 ### Security
+
 - Adzuna credentials are read from the environment as secrets and never shown in errors.
 
 ### Notes
+
 - Source attribution links are followed link-backs where the terms require it; the Adzuna label is
   sized as its terms specify.
 - Arbeitnow and Jooble are not integrated because their terms or documentation could not be verified.
@@ -176,6 +197,7 @@ and decisions worth knowing).
 ## Milestone 5 — Job search provider architecture — 2026-10-18 (`29be188`)
 
 ### Added
+
 - Shared search and job models with safe URL validation; unknown fields stay empty.
 - Provider interface, error types and registry, including a documented list of unsupported sources
   (LinkedIn, Indeed, Glassdoor, Google Jobs, Bayt and others without a permitted API).
@@ -185,14 +207,17 @@ and decisions worth knowing).
 - Find Jobs runs real searches and shows each source's status (live, cached, failed, not searched).
 
 ### Security
+
 - Error messages never include URLs or credentials.
 
 ### Notes
+
 - Tests never reach the network (forced offline mode, mocked transports). 226 offline tests.
 
 ## Milestone 4 — CV parsing and ATS analysis — 2026-10-18 (`9eedf43`)
 
 ### Added
+
 - Skill taxonomy (technical, tools, methods, standards, business, professional skills, languages)
   with boundary-aware matching.
 - CV parser: sections, contact details, date ranges, estimated experience and bullet statistics.
@@ -202,27 +227,32 @@ and decisions worth knowing).
 - CV Analysis report tabs: ATS compatibility, structure and details, skills, job comparison.
 
 ### Notes
+
 - 170 offline tests.
 
 ## Milestone 3 — Secure CV upload and text extraction — 2026-10-18 (`451812f`)
 
 ### Added
+
 - PDF and DOCX upload with in-memory text extraction, keeping sections, bullets, DOCX tables and
   header contact details.
 - Detection of scanned or partly scanned PDFs, with guidance instead of treating them as empty.
 - CV Analysis page: upload, replace, extraction summary, text preview and confirmed deletion.
 
 ### Security
+
 - Uploads validated by extension, size and file signature; legacy .doc, empty, damaged, disguised,
   encrypted and oversized files are rejected.
 - No temporary files; raw bytes are discarded after extraction and CV content is never logged.
 
 ### Notes
+
 - 104 offline tests using fictional CV fixtures.
 
 ## Milestone 2 — UI design system and navigation — 2026-10-18 (`48c288a`)
 
 ### Added
+
 - Brand logo and grouped sidebar navigation (Overview, Discover, Prepare, Track, Account).
 - Reusable, HTML-escaped components: headers, badges, notices, metric and feature grids, step lists,
   key-value cards and empty states with next actions.
@@ -231,11 +261,13 @@ and decisions worth knowing).
 - Honest empty states for pages not yet backed by data; responsive layouts.
 
 ### Notes
+
 - 65 offline tests.
 
 ## Milestone 1 — Foundation — 2026-10-18 (`34d5bbf`)
 
 ### Added
+
 - Typed, validated configuration (scoring weights must sum to 100; thresholds must be ordered).
 - Design tokens, stylesheet and Streamlit theme.
 - Application shell with navigation for all nine sections.
@@ -243,4 +275,5 @@ and decisions worth knowing).
 - README with setup, configuration and scoring method.
 
 ### Notes
+
 - 25 offline tests, including WCAG contrast checks.
