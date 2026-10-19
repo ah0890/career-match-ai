@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 7 — normalisation, deduplication and freshness). CVs can be uploaded, parsed and analysed, and real jobs can be searched across several permitted job sources at once. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated.
+> **Status:** early development (Milestone 8 — explainable CV-to-job matching). CVs can be uploaded, parsed and analysed, real jobs can be searched across several permitted job sources at once, and results are ranked against your CV with the evidence behind every score. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated. See [CHANGELOG.md](CHANGELOG.md) for what changed in each milestone.
 
 ## Planned features
 
@@ -15,7 +15,8 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | Job provider architecture | ✅ Done |
 | Multi-source discovery (Adzuna, Himalayas, Jobicy, Remote OK, Remotive) | ✅ Done |
 | Normalisation, cross-source deduplication, freshness labels | ✅ Done |
-| Explainable CV-to-job matching & recommendations | Planned |
+| Explainable CV-to-job matching | ✅ Done |
+| Recommendations (APPLY / IMPROVE / DON'T PRIORITIZE) | Planned |
 | Company intelligence with source attribution | Planned |
 | Interview preparation & study plans | Planned |
 | Application tracker & dashboard | Planned |
@@ -34,6 +35,7 @@ src/cv/session.py      The active CV for the current browser session
 src/cv/parsing.py      Section, contact, date, bullet and skill parsing
 src/cv/ats.py          Transparent ATS scoring and job keyword alignment
 src/matching/skills.py Skill taxonomy and boundary-aware skill extraction
+src/matching/          Job requirement extraction and the explainable matching engine
 src/jobs/              Job models, normalisation and local filtering
 src/providers/         Provider interface, HTTP layer (timeouts, retries, budgets, cache), registry, adapters
 src/services/          Multi-source search service and shared runtime resources
