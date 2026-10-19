@@ -8,7 +8,7 @@ Every score is produced by transparent, explainable rules — you can see exactl
 Nothing is simulated or invented: unknown information is shown as "not provided", and suggestions only ever
 ask you to state what is genuinely true. The core app needs no paid AI service.
 
-> **Status:** the original plan (milestones 1–21) is complete. See [CHANGELOG.md](CHANGELOG.md) for what
+> **Status:** the original plan (milestones 1–21) and job-specific CV tailoring (milestone 22) are complete. See [CHANGELOG.md](CHANGELOG.md) for what
 > changed in each milestone and the [roadmap](#roadmap) for what comes next.
 
 ## Contents
@@ -42,7 +42,7 @@ On macOS or Linux use `source .venv/bin/activate` and `cp .env.example .env`. Th
 
 ## What you can do
 
-A typical journey: **upload your CV → search for jobs → review ranked matches → research the employer →
+A typical journey: **upload your CV → search for jobs → review ranked matches → tailor your CV for a job → research the employer →
 prepare for the interview → track the application.**
 
 | Page | What it does |
@@ -54,6 +54,7 @@ prepare for the interview → track the application.**
 | **Company Intelligence** | Looks up an employer on Wikidata and Wikipedia. You confirm which entry is meant; every fact links to its source and shows the date the source gives. Shows the employer's roles in your results. |
 | **Interview Preparation** | Likely questions for a chosen job, each with why it may come up, the lines of your CV to draw on and how to prepare. A study plan covers the gaps, with Not started / Preparing / Prepared tracking. Plans can be downloaded as Markdown. |
 | **Application Tracker** | Track applications from Saved to Offer with notes, applied date and follow-up dates. Every status change is recorded. Opening a link never changes a status — only you do. |
+| **Tailor CV** | Adapt your CV to one job. Each suggested change (job skills first, most relevant achievements first in each role, a focused summary line) is shown before and after, and you accept or reject it. Adding a missing required skill is off by default and needs you to confirm you genuinely have it. Edit the final text, see the match score before and after, download DOCX or PDF, save it as a CV version and open the application link. Your original CV is never changed. |
 | **CV Versions** | Save tailored CVs (only with your consent), switch between them, compare two versions and see which one fits your latest results best. |
 | **Settings** | Current scoring weights and thresholds, job-source status, stored data, and buttons to clear cached data and search history. |
 
@@ -219,6 +220,7 @@ src/matching/          Skill taxonomy, requirement extraction, matching engine, 
                        filtering and comparison, CV improvement plan
 src/company/           Company lookup (Wikidata, Wikipedia) and relevance to your search
 src/interview/         Interview questions and study plans
+src/tailoring/         Job-specific CV edits and DOCX/PDF export
 src/tracker/           Application tracker operations
 src/analytics/         Dashboard figures from real activity
 src/db/                SQLAlchemy models and engine, persistent HTTP cache
@@ -236,11 +238,10 @@ a text label, never colour alone.
 
 ## Roadmap
 
-The original plan (milestones 1–21) is complete. Planned next:
+The original plan (milestones 1–21) and CV tailoring (milestone 22) are complete. Planned next:
 
 | Milestone | Area |
 | --- | --- |
-| 22 | Job-specific CV tailoring: preview suggested edits, accept or reject each, download DOCX and PDF, apply from the app, keep tailored versions |
 | 23 | Chrome browser extension (Manifest V3) |
 | 24 | Freemium plan: one free full job workflow, then a paid subscription with server-side entitlements |
 | 25 | Integration, security and verification for the extension and subscription (needs a backend API with authentication) |

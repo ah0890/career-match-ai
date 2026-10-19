@@ -10,10 +10,31 @@ and decisions worth knowing).
 
 ### Planned
 
-- Milestone 22 — job-specific CV tailoring: preview suggested edits, accept or reject each, download DOCX and
-  PDF, and keep tailored versions.
+- Milestones 23–25 — Chrome extension, freemium plan and their integration and security verification. These
+  need a backend API with user accounts.
+- Milestone 26 — multi-language support.
 
-## Milestone 21 — Documentation — 2026-10-19
+## Milestone 22 — Job-specific CV tailoring — 2026-10-19 (`d19f967`)
+
+### Added
+
+- **Tailor CV** page, also reachable from a "Tailor CV" button on every job in Job Matches.
+- Suggested changes for the chosen job, each shown before and after and accepted or rejected individually:
+  the job's skills first in your skills list, the most relevant achievements first within each role, and a
+  summary line naming required skills your CV already shows (or a short summary if the CV has none).
+- Adding a required skill your CV does not mention is off by default and needs you to confirm you genuinely
+  have it.
+- Editable final text with the match score before and after tailoring.
+- DOCX and PDF downloads in a single-column, ATS-friendly layout with real, selectable text.
+- Save the tailored CV as a CV version (with consent), open the verified application link, and mark the job
+  as Applied in the tracker only when you confirm you submitted it.
+
+### Notes
+
+- Edits never reword bullets, move them between roles, or add employers, dates, projects or achievements.
+  Your original CV is never changed.
+
+## Milestone 21 — Documentation — 2026-10-19 (`60a844c`)
 
 ### Changed
 
