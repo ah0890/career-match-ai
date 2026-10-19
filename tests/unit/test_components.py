@@ -63,8 +63,8 @@ def test_steps_label_state_in_text():
 def test_navigation_has_all_primary_pages_with_unique_paths():
     titles = [p.title for p in PAGES]
     assert titles == [
-        "Dashboard", "Find Jobs", "CV Analysis", "Job Matches", "Tailor CV", "Company Intelligence",
-        "Interview Preparation", "Application Tracker", "Email Tracking", "CV Versions", "Settings",
+        "Dashboard", "Find Jobs", "CV Analysis", "Job Matches", "CV Studio", "Company Intelligence",
+        "Interview Preparation", "Application Tracker", "Email Tracking", "Settings",
     ]
     assert len({p.url_path for p in PAGES}) == len(PAGES)
     assert all(p.icon.startswith(":material/") for p in PAGES)

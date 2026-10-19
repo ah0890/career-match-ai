@@ -8,8 +8,8 @@ Every score is produced by transparent, explainable rules — you can see exactl
 Nothing is simulated or invented: unknown information is shown as "not provided", and suggestions only ever
 ask you to state what is genuinely true. The core app needs no paid AI service.
 
-> **Status:** the original plan (milestones 1–21), job-specific CV tailoring and email-based application
-> tracking are complete. See [CHANGELOG.md](CHANGELOG.md) for what
+> **Status:** the original plan (milestones 1–21), CV Studio (review, approval, tailoring, versions and
+> PDF/DOCX export) and email-based application tracking are complete. See [CHANGELOG.md](CHANGELOG.md) for what
 > changed in each milestone and the [roadmap](#roadmap) for what comes next.
 
 ## Contents
@@ -19,6 +19,7 @@ ask you to state what is genuinely true. The core app needs no paid AI service.
 - [How scores and recommendations work](#how-scores-and-recommendations-work)
 - [Job sources](#job-sources)
 - [Privacy and data](#privacy-and-data)
+- [CV Studio](#cv-studio)
 - [Email tracking](#email-tracking)
 - [Configuration](#configuration)
 - [Backend API](#backend-api)
@@ -36,11 +37,11 @@ python -m venv .venv
 .venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-copy .env.example .env   # optional — the defaults work without it
-streamlit run app.py
+streamlit run app.py      # the defaults work without any configuration
 ```
 
-On macOS or Linux use `source .venv/bin/activate` and `cp .env.example .env`. The app opens at
+On macOS or Linux use `source .venv/bin/activate`. To change a setting, create a file named `.env` in the project
+folder (it is never committed) with lines such as `CAREERMATCH_OFFLINE_MODE=true`. The app opens at
 <http://localhost:8501> and is reachable only from your own computer.
 
 ## What you can do
@@ -58,8 +59,7 @@ prepare for the interview → track the application.**
 | **Interview Preparation** | Likely questions for a chosen job, each with why it may come up, the lines of your CV to draw on and how to prepare. A study plan covers the gaps, with Not started / Preparing / Prepared tracking. Plans can be downloaded as Markdown. |
 | **Application Tracker** | Every application from Saved to Offer: nine summary cards (applied, active, pending, under review, interviews received and scheduled, offers, rejections, no response), a searchable, sortable table, and for each application a dated timeline, linked emails, status, interview date and notes, reminders and corrections of the interview and offer counts. Opening a link never changes a status. |
 | **Email Tracking** | Optional: connect Gmail or Outlook (read-only) so replies to your applications update the tracker automatically, with a review queue for anything uncertain. See [Email tracking](#email-tracking). |
-| **Tailor CV** | Adapt your CV to one job. Each suggested change (job skills first, most relevant achievements first in each role, a focused summary line) is shown before and after, and you accept or reject it. Adding a missing required skill is off by default and needs you to confirm you genuinely have it. Edit the final text, see the match score before and after, download DOCX or PDF, save it as a CV version and open the application link. Your original CV is never changed. |
-| **CV Versions** | Save tailored CVs (only with your consent), switch between them, compare two versions and see which one fits your latest results best. |
+| **CV Studio** | Your CVs in one place: the untouched Original Master CV, a Revised Master CV with the improvements you approve, and a separate tailored CV per job. Review scores, recommended changes you accept, edit or reject, questions for missing information, side-by-side comparison, version history, and a checked PDF and editable Word file. See [CV Studio](#cv-studio). |
 | **Settings** | Current scoring weights and thresholds, job-source status, stored data, and buttons to clear cached data and search history. |
 
 ## How scores and recommendations work
@@ -155,7 +155,7 @@ sent.
    access, terms URL, attribution, supported filters), implement `missing_configuration()` and `search()`
    returning normalised `JobPosting` objects.
 2. Make every request through `ProviderHttp` with a `RequestPolicy` that respects the source's limits.
-3. Read credentials from `CAREERMATCH_*` settings and document them in `.env.example`.
+3. Read credentials from `CAREERMATCH_*` settings and document them in the Configuration table below.
 4. Register the class in `PROVIDER_CLASSES` (`src/providers/registry.py`) and add tests with mocked responses.
 
 ## Privacy and data
@@ -174,6 +174,68 @@ sent.
   content is never sent anywhere, and never logged.
 - The app listens on `localhost` only. It is a single-user local application: do not expose it on a network
   without authentication and hardening. See [SECURITY.md](SECURITY.md) for the threat model and controls.
+
+## CV Studio
+
+**Your CVs**
+
+| CV | What it is |
+| --- | --- |
+| **Original Master CV** | The CV you uploaded, structured into sections. It is never changed. Uploading a new CV archives the old one instead of overwriting it. |
+| **Revised Master CV** | A copy where the general improvements you approve go. It is labelled *Draft* until you approve it (*User Approved*). New tailored CVs start from it once approved. |
+| **Tailored CV — <job>** | A separate copy for one job, linked to that job in the tracker. Changing one tailored CV never changes another. |
+
+Every CV keeps its full revision history (each accepted change, answer, edit or layout change is a revision).
+You can compare any two CVs or revisions, restore an old revision as a new one, and generate a PDF of any
+revision. When you mark an application as submitted, the exact revision you sent is kept with it.
+
+**Review and approval**
+
+- *Review & scores* gives an overall score out of 100 and category scores: language and grammar, structure and
+  ATS readability, professional summary, experience and achievements, skills/education/certifications, and
+  relevance to your target roles. The scores come from transparent rules. They are guidance, not a prediction
+  of how an employer will rank you.
+- *Recommended changes* shows each suggestion with the current text, the suggested text, why it matters and
+  how it helps. You can accept, edit or reject each one, undo it later, or accept/reject all at once.
+  "Accept all" skips any change that needs you to confirm a fact.
+- Suggestions only reword, reformat or reorder what your CV already says: spelling, “Responsible for
+  managing” → “Managed”, filler words, pronouns, consistent dates, duplicates.
+- Anything that would need a new fact (a figure, a date, a missing skill) becomes a question under *Missing
+  information*. Unanswered questions stay out of your CV.
+- *Tailor for a job* compares the CV with a job (from your search, your tracker or pasted). It suggests putting
+  the job's skills and most relevant achievements first, a focused summary, a section order, and the job's own
+  wording for skills you already show. Skills you lack are listed as gaps. Adding one needs your confirmation
+  that it is true.
+
+**Export.** *Preview & download* offers four templates (like my original, classic professional, modern minimal,
+technical & engineering), A4 or Letter, and font, size and margin choices. You can also choose to fit the CV
+onto one page within readable limits.
+
+- **The PDF** is single-column with real, selectable text and page numbers. Headings are never left alone at
+  the bottom of a page, and bullets are never split across pages.
+- **The DOCX** uses Word headings, paragraphs and bullet lists, with no text boxes or tables.
+- **Checks before download:** each file is opened again and checked for page count, every visible line
+  present, reading order, nothing clipped or overlapping, and characters intact. A file that fails a check is
+  not offered for download.
+- **File names** follow the pattern `First_Last_Title_CV.pdf`.
+
+### Claude (optional)
+
+The built-in rules work without any account. With an Anthropic API key, CV Studio can also ask Claude for
+suggestions (*Ask Claude for suggestions* on the Review tab, *Ask Claude to tailor it* for a job).
+
+1. Create a key at <https://console.anthropic.com/settings/keys>.
+2. Open the `.env` file in the project folder and paste it after `ANTHROPIC_API_KEY=` (no quotes or spaces).
+3. Restart the app. Settings shows “Claude for CV review: On”.
+
+**What is sent and when:** only after you tick the consent box for that request. Your name, email, phone,
+location and links are removed first. Claude's suggestions go through the same approval workflow. A
+suggestion that adds a figure, skill or name your CV does not contain is flagged, and you must confirm it
+before it can be accepted.
+
+**Cost control:** the default model is `claude-sonnet-5-5` at medium effort with an 8,000-token answer limit,
+about US$0.04 per review. Each request shows what it cost. For the lowest cost set
+`CAREERMATCH_CV_AI_MODEL=claude-haiku-5-5`, about US$0.003 per review with simpler writing.
 
 ## Email tracking
 
@@ -250,7 +312,7 @@ Work or school accounts may need an administrator to approve the app.
 
 ## Configuration
 
-All settings use the `CAREERMATCH_` prefix and can be set in `.env` (see `.env.example`). Invalid values stop
+All settings use the `CAREERMATCH_` prefix and can be set in a `.env` file in the project folder (git-ignored). Invalid values stop
 the app at start-up with a clear error.
 
 | Variable | Default | Meaning |
@@ -262,6 +324,12 @@ the app at start-up with a clear error.
 | `CAREERMATCH_WEIGHT_ATS`, `_REQUIRED_SKILLS`, `_EXPERIENCE`, `_RESPONSIBILITIES`, `_EDUCATION`, `_KEYWORDS` | 20, 25, 20, 15, 10, 10 | Match-score weights (must be ≥ 0 and sum to 100) |
 | `CAREERMATCH_OFFLINE_MODE` | `false` | Block every external request |
 | `CAREERMATCH_HTTP_TIMEOUT_S` | `15` | Timeout per request to a source |
+| `ANTHROPIC_API_KEY` | — | Optional: enables Claude suggestions in CV Studio |
+| `CAREERMATCH_CV_AI_ENABLED` | `true` | Set to `false` to never use Claude, even with a key |
+| `CAREERMATCH_CV_AI_MODEL` | `claude-sonnet-5-5` | `claude-haiku-5-5` is the cheapest option |
+| `CAREERMATCH_CV_AI_EFFORT` | `medium` | `low` / `medium` / `high` — higher costs more |
+| `CAREERMATCH_CV_AI_MAX_TOKENS` | `8000` | Upper limit of one Claude answer (caps the cost of a request) |
+| `CAREERMATCH_CV_STORAGE_DIR` | `data/cv_files` | Encrypted original CVs and generated PDF/DOCX files |
 | `CAREERMATCH_<SOURCE>_ENABLED` | `true` | Switch a source off (`REMOTIVE`, `HIMALAYAS`, `JOBICY`, `REMOTEOK`) |
 | `CAREERMATCH_TRACKER_NO_RESPONSE_DAYS` | `21` | Days without activity before an application shows as No Response |
 | `CAREERMATCH_GMAIL_CLIENT_ID`, `CAREERMATCH_GMAIL_CLIENT_SECRET` | — | Your Google OAuth *Desktop app* client (email tracking) |
@@ -331,7 +399,10 @@ src/matching/          Skill taxonomy, requirement extraction, matching engine, 
                        filtering and comparison, CV improvement plan
 src/company/           Company lookup (Wikidata, Wikipedia) and relevance to your search
 src/interview/         Interview questions and study plans
-src/tailoring/         Job-specific CV edits and DOCX/PDF export
+src/tailoring/         Job-specific CV edits and DOCX/PDF export (used by the backend API)
+src/workspace/         CV Studio: structured CV, import, master/revised/tailored versions and revisions,
+                       review rules, approval workflow, job tailoring, PDF/DOCX rendering and checks,
+                       encrypted file storage, optional Claude provider
 src/api/               Backend API: accounts, tokens and per-account CV, jobs, preparation and tailoring
 src/tracker/           Application tracker: statuses, timeline, counting rules, safe automatic updates
 src/mail/              Email tracking: OAuth, encrypted tokens, Gmail/Graph adapters, classifier, matcher,

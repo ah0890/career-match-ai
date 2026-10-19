@@ -14,7 +14,7 @@ from src.matching.recommendations import Label, RankedMatch, prioritise
 from src.pages.company_intelligence import PREFILL_KEY as COMPANY_PREFILL_KEY
 from src.pages.find_jobs import OUTCOME_KEY
 from src.pages.interview_preparation import PREFILL_KEY as INTERVIEW_PREFILL_KEY
-from src.pages.tailor_cv import PREFILL_KEY as TAILOR_PREFILL_KEY
+from src.pages.cv_studio import PREFILL_KEY as TAILOR_PREFILL_KEY
 from src.matching.improvements import improvement_plan
 from src.db.engine import session_scope
 from src.services.matching import match_profile, ranked_matches
@@ -179,8 +179,8 @@ def render() -> None:
                 st.html(description_html(m.result.job))
             a0, a1, a2, a3 = st.columns(4)
             if a0.button("Tailor CV", icon=":material/edit_document:", key=f"jm_tailor_{start + i}", width="stretch"):
-                st.session_state[TAILOR_PREFILL_KEY] = m.result.job.key
-                go_to("tailor-cv")
+                st.session_state[TAILOR_PREFILL_KEY] = m.result.job
+                go_to("cv-studio")
             if a1.button("Prepare for interview", icon=":material/school:", key=f"jm_prep_{start + i}", width="stretch"):
                 st.session_state[INTERVIEW_PREFILL_KEY] = m.result.job.key
                 go_to("interview-preparation")

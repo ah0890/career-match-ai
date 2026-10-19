@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -56,7 +57,7 @@ class Settings(BaseSettings):
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
-        env_ignore_empty=True,  # a blank line copied from .env.example means "use the default"
+        env_ignore_empty=True,  # a blank value in .env means "use the default"
     )
 
     app_name: str = "CareerMatch AI"
@@ -91,7 +92,9 @@ class Settings(BaseSettings):
     cv_storage_dir: Path = DATA_DIR / "cv_files"  # encrypted originals and generated PDFs
     cv_ai_enabled: bool = True  # Claude review and tailoring; used only when ANTHROPIC_API_KEY is set
     anthropic_api_key: SecretStr | None = Field(None, validation_alias="ANTHROPIC_API_KEY")
-    cv_ai_model: str = "claude-opus-5-5"
+    cv_ai_model: str = "claude-sonnet-5-5"  # good writing at moderate cost; claude-haiku-5-5 is cheapest
+    cv_ai_effort: Literal["low", "medium", "high"] = "medium"  # lower effort = fewer (billed) thinking tokens
+    cv_ai_max_tokens: int = Field(8000, ge=2000, le=32000)  # caps the cost of one request
 
     # --- Email tracking (OAuth; read-only access) -------------------------
     # Credentials of *your own* OAuth app registrations — see README "Email tracking".

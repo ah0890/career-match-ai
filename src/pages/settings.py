@@ -5,7 +5,8 @@ from __future__ import annotations
 import streamlit as st
 
 from config.settings import get_settings
-from src.cv.versions import list_versions
+from src.workspace import ai as cv_ai
+from src.workspace import repository as cv_repo
 from src.db.engine import session_scope
 from src.db.http_store import cache_stats, clear_cache
 from src.services.history import clear_history, recent_searches
@@ -66,7 +67,8 @@ def render() -> None:
         ("Database", _database_label(s.database_url)),
         ("Maximum CV size", f"{s.max_upload_mb:g} MB"),
         ("External processing", "None — CVs are never sent to job sources or any other service"),
-        ("Saved CV versions", _versions_label(s.database_url)),
+        ("Your CVs", _versions_label(s.database_url)),
+        ("Claude for CV review", _ai_label(s)),
         ("Offline mode", "On — no external requests" if s.offline_mode else "Off — job searches contact the sources above"),
     ])
     _stored_data(s)
@@ -74,9 +76,18 @@ def render() -> None:
 
 def _versions_label(url: str) -> str:
     with session_scope(url) as session:
-        n = len(list_versions(session))
-    return (f"{n} — extracted text only, kept until you delete it on the CV Versions page" if n
-            else "None — CV text is kept only for the browser session unless you save a version")
+        n = len(cv_repo.list_docs(session, include_archived=True))
+    return (f"{n} in CV Studio — stored on this computer until you delete them" if n
+            else "None — upload your CV in CV Studio to keep and improve it")
+
+
+def _ai_label(s) -> str:
+    if cv_ai.available(s):
+        return (f"On — {s.cv_ai_model}, {s.cv_ai_effort} effort. CV text is sent only after you confirm each "
+                "request; contact details are removed first.")
+    if s.anthropic_api_key is None:
+        return "Off — add ANTHROPIC_API_KEY to your .env file to enable it"
+    return "Off — set CAREERMATCH_CV_AI_ENABLED=true in your .env file"
 
 
 def _stored_data(s) -> None:

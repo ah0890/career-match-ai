@@ -36,7 +36,8 @@ def app_url(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("e2e")
     port = _free_port()
     env = {**os.environ, "CAREERMATCH_OFFLINE_MODE": "true",
-           "CAREERMATCH_DATABASE_URL": f"sqlite:///{(tmp / 'e2e.db').as_posix()}"}
+           "CAREERMATCH_DATABASE_URL": f"sqlite:///{(tmp / 'e2e.db').as_posix()}",
+           "CAREERMATCH_CV_STORAGE_DIR": str(tmp / "cv_files"), "CAREERMATCH_CV_AI_ENABLED": "false"}
     proc = subprocess.Popen([sys.executable, "-m", "streamlit", "run", "app.py", "--server.port", str(port),
                              "--server.headless", "true"], cwd=ROOT, env=env,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -107,15 +108,8 @@ def test_cv_journey_upload_analyse_compare_and_save_version(page, app_url, cv_pd
     assert page.get_by_text("IATF 16949: not found in your CV").first.is_visible()
 
     # Navigate in-app: a full page load starts a new session, and the CV lives only in the session.
-    page.get_by_role("link", name="CV Versions").click()
-    page.wait_for_selector("text=Save your active CV as a version", timeout=30000)
-    page.get_by_label("Version name").fill("Quality roles")
-    page.get_by_role("button", name="Save version").click()
-    page.wait_for_selector("text=Tick the box", timeout=10000)  # consent is required
-    page.get_by_label("Version name").fill("Quality roles")
-    page.get_by_text("I want to keep this CV").click()
-    page.get_by_role("button", name="Save version").click()
-    page.wait_for_selector("text=1 saved version", timeout=30000)
+    page.get_by_role("link", name="CV Studio").click()
+    page.wait_for_selector("text=Your original stays untouched", timeout=30000)
     _no_errors(page)
 
 

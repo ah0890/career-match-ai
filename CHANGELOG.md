@@ -8,6 +8,39 @@ and decisions worth knowing).
 
 ## [Unreleased]
 
+## CV Studio — 2026-10-19
+
+### Added
+
+- **CV Studio** page, which replaces *Tailor CV* and *CV Versions*. It keeps an Original Master CV that never
+  changes, a Revised Master CV for approved improvements, and separate tailored CVs per job, each with
+  immutable revisions, comparison, restore-as-new and per-revision PDF generation.
+- Rule-based review with an overall score and six category scores out of 100. Suggestions cover spelling,
+  weak openers, filler, pronouns, punctuation, date formats and duplicates, and each one explains why it
+  matters and how it helps. Vague lines get advice and a question instead of a rewrite.
+- Approval workflow: accept, edit, reject and undo single suggestions. "Accept all" skips changes that need a
+  fact confirmed. Sections can be restored to their original content.
+- Missing-information questions (essential or optional). Answers can also go to the Revised Master CV.
+- Job tailoring from your search, your tracker or a pasted description, with match score before and after,
+  strengths and genuine gaps. Adding a missing skill always needs confirmation.
+- PDF and DOCX export in four templates, with an optional fit-to-one-page setting. Multi-page PDFs keep
+  headings with their content, keep bullets whole and are numbered. Every file is checked before download.
+- Tracker integration: a *CV* tab per application. The exact revision is pinned when an application is
+  submitted, and generated files are kept with the application.
+- Optional Claude suggestions (Anthropic API) for the review and for tailoring, with per-request consent,
+  contact details removed, invented figures/skills flagged, and the cost of each request shown.
+- OCR for scanned PDFs when Tesseract is installed. Originals are stored only with consent, encrypted.
+
+### Changed
+
+- The `.env.example` file was removed: settings live in your own (git-ignored) `.env` and are documented
+  in the README's Configuration table.
+- Migration 3 adds the file type and application link to generated CV files.
+
+### Notes
+
+- Scores and suggestions are guidance from transparent rules. They cannot predict hiring decisions.
+
 ### Planned
 
 - Milestones 23–25 — Chrome extension, freemium plan and their integration and security verification. These

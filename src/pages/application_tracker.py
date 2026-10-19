@@ -25,6 +25,8 @@ from src.jobs.models import safe_url
 from src.mail import review as mail_review
 from src.services import mail as mail_service
 from src.ui.navigation import go_to
+from src.workspace import exports as cv_exports
+from src.workspace import repository as cv_repo
 
 _FLASH = "at_flash"
 _SELECTED = "at_selected"
@@ -185,8 +187,8 @@ def _details(app_id: int) -> None:
             return
         _ = (app.events, app.history, [e.message for e in app.events])  # load while the session is open
     st.html(application_card_html(app))
-    timeline, emails_tab, status_tab, interview_tab, details_tab = st.tabs(
-        ["Timeline", "Emails", "Status", "Interview", "Details"])
+    timeline, emails_tab, status_tab, interview_tab, cv_tab, details_tab = st.tabs(
+        ["Timeline", "Emails", "Status", "Interview", "CV", "Details"])
     with timeline:
         st.html(timeline_html(app.events))
     with emails_tab:
@@ -195,9 +197,66 @@ def _details(app_id: int) -> None:
         _status_form(app)
     with interview_tab:
         _interview_form(app)
+    with cv_tab:
+        _cv_tab(app.id)
     with details_tab:
         _details_form(app)
         _delete(app)
+
+
+def _cv_tab(app_id: int) -> None:
+    """The CV used for this application: link one, see the exact revision sent, download it."""
+    with session_scope(_db()) as s:
+        app = get(s, app_id)
+        linked = cv_exports.for_application(s, app)
+        docs = [(d.id, cv_repo.label(d)) for d in cv_repo.list_docs(s)]
+        suggested = cv_repo.suggest_for_job(s, app.job_key, app.title, app.company)
+        linked_info = None
+        if linked:
+            doc, number, _ = linked
+            linked_info = (doc.id, cv_repo.label(doc), number, app.cv_revision_number is not None)
+    if not docs:
+        st.caption("Upload your CV in CV Studio to link it to your applications.")
+        return
+    if linked_info:
+        doc_id, label, number, pinned = linked_info
+        st.markdown(f"**{escape(label)}** · revision {number}")
+        st.caption("This exact revision was sent and stays retrievable, even if you edit the CV later." if pinned
+                   else "When you mark the application as submitted, the current revision is kept with it.")
+        c1, c2 = st.columns(2)
+        for col, kind, label_ in ((c1, "pdf", "PDF"), (c2, "docx", "DOCX")):
+            key = f"at_cv_{kind}_{app_id}"
+            made = st.session_state.get(key)
+            if made and made[0] == (doc_id, number):
+                col.download_button(f"Download {label_}", made[1], file_name=made[2], mime=cv_exports.MIME[kind],
+                                    key=f"{key}_dl", on_click="ignore", icon=":material/download:", width="stretch")
+            elif col.button(f"Create {label_} of this CV", key=f"{key}_make", width="stretch"):
+                with session_scope(_db()) as s:
+                    app = get(s, app_id)
+                    result = cv_exports.generate(s, cv_repo.get_doc(s, doc_id), kind, revision=number,
+                                                 application=app)
+                if result.ok:
+                    st.session_state[key] = ((doc_id, number), result.data, result.filename)
+                    st.rerun()
+                st.error(result.error, icon=":material/error:")
+        if st.button("Open in CV Studio", key=f"at_cv_open_{app_id}", icon=":material/edit_document:"):
+            st.session_state["cs_doc_next"] = doc_id
+            go_to("cv-studio")
+    ids = [d[0] for d in docs]
+    labels = dict(docs)
+    default = ids.index(suggested.id) if suggested is not None and suggested.id in ids else 0
+    with st.form(f"at_cv_link_{app_id}", border=False):
+        pick = st.selectbox("CV for this application", ids, index=default, format_func=labels.get,
+                            help="Suggested: a CV tailored for this job, otherwise your master CV.")
+        ok = st.checkbox("Yes, use this CV for this application")
+        if st.form_submit_button("Link CV"):
+            if not ok:
+                st.error("Tick the box to confirm.", icon=":material/error:")
+            else:
+                with session_scope(_db()) as s:
+                    cv_repo.select_for_application(s, get(s, app_id), cv_repo.get_doc(s, pick))
+                _flash("CV linked to this application.")
+                st.rerun()
 
 
 def _emails(app) -> None:
@@ -377,7 +436,7 @@ def render() -> None:
 
     if not apps:
         empty_state("No applications tracked yet",
-                    "Save a job from Job Matches, record an application from Tailor CV, or add one manually below. "
+                    "Save a job from Job Matches, create a tailored CV for a job in CV Studio, or add one manually below. "
                     "Opening a job link never marks it as applied.")
         _, mid, _ = st.columns([2, 1, 2])
         with mid:

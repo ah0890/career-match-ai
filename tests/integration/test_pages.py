@@ -483,23 +483,115 @@ def test_dashboard_shows_metrics_charts_and_top_matches_from_real_data():
     assert "Done" in html
 
 
-def test_cv_versions_requires_consent_then_saves_and_loads():
-    at = _render_page_with("cv_versions", cv=_text_cv())
-    assert "No CV versions yet" in _html(at)
-    name_input = next(t for t in at.text_input if t.label == "Version name")
-    name_input.input("Quality roles")
-    next(b for b in at.button if b.label == "Save version").click().run()
-    assert any("Tick the box" in e.value for e in at.error)
+def _studio(seed: bool = True) -> AppTest:
+    """CV Studio with an Original Master CV already imported."""
+    from config.settings import get_settings
+    from src.db.engine import session_scope
+    from src.workspace import repository as repo
+    from tests.fixtures.cv_factory import make_text_pdf
+    from tests.fixtures.match_factory import QUALITY_CV
 
-    next(t for t in at.text_input if t.label == "Version name").input("Quality roles")
-    next(c for c in at.checkbox if "keep this CV" in c.label).check()
-    next(b for b in at.button if b.label == "Save version").click().run()
+    if seed:
+        with session_scope(get_settings().database_url) as s:
+            source = repo.import_source(s, "Alex CV.pdf", make_text_pdf(), max_bytes=5_000_000,
+                                        ocr_text=QUALITY_CV.replace("Led root-cause", "I was responsible for leading root-cause"))
+            repo.create_master(s, source)
+    return _render("cv_studio")
+
+
+def _click(at: AppTest, label: str) -> AppTest:
+    next(b for b in at.button if b.label.startswith(label)).click()
+    return at.run()
+
+
+def test_cv_studio_without_a_cv_asks_for_an_upload():
+    at = _studio(seed=False)
     assert not at.exception
+    assert "Your original stays untouched" in _html(at)
+
+
+def test_cv_studio_review_approve_and_download_journey():
+    at = _studio()
+    assert not at.exception, at.exception
     html = _html(at)
-    assert "1 saved version" in html and "Active CV" in html
-    assert "Your active CV is saved as “Quality roles”." in html
+    assert "Original Master CV" in html and "Read-only" in html
+    at = _click(at, "Improve this CV")  # opens the Revised Master CV
+    assert not at.exception, at.exception
+    assert at.selectbox(key="cs_doc").format_func(at.selectbox(key="cs_doc").value) == "Revised Master CV — Draft"
+    at = _click(at, "Find suggested changes")
+    assert not at.exception, at.exception
+    assert "Overall CV score" in _html(at)
+    at = _click(at, "Accept all safe changes")
+    assert not at.exception, at.exception
+    at = _click(at, "Preview final CV")
+    assert not at.exception, at.exception
+    assert "All content present" in _html(at) and len(at.get("image")) >= 1
+    at = _click(at, "Create PDF")
+    assert not at.exception, at.exception
+    assert any("Generated and checked" in c.value for c in at.caption)
+    from config.settings import get_settings
+    from src.db.engine import session_scope
+    from src.workspace import repository as repo
+    with session_scope(get_settings().database_url) as s:
+        master = repo.get_master(s)
+        assert "I was responsible for leading" in repo.load(master).to_text()  # the original never changes
+        assert "Led root-cause" in repo.load(repo.get_revised(s)).to_text()
 
 
-def test_settings_reports_saved_versions():
+def test_cv_studio_creates_a_tailored_cv_from_a_pasted_job():
+    from tests.fixtures.match_factory import QUALITY_JOB
+    at = _studio()
+    at.radio(key="cs_job_source").set_value("Paste a job description")
+    at = at.run()
+    at.text_input(key="cs_job_title").input("Quality Engineer")
+    at.text_input(key="cs_job_company").input("Example Devices")
+    at.text_area(key="cs_job_text").input(QUALITY_JOB)
+    at = at.run()
+    at = _click(at, "Create tailored CV")
+    assert not at.exception, at.exception
+    html = _html(at)
+    assert "Match with this job" in html and "ISO 13485" in html  # a genuine gap, not added
+    from config.settings import get_settings
+    from src.db.engine import session_scope
+    from src.tracker.repository import list_applications
+    with session_scope(get_settings().database_url) as s:
+        apps = list_applications(s)
+        assert len(apps) == 1 and apps[0].cv_doc_id is not None and apps[0].status == "To Apply"
+
+
+def test_tracker_shows_the_cv_used_for_an_application():
+    from src.workspace.importer import import_text
+    from config.settings import get_settings
+    from src.db.engine import session_scope
+    from src.tracker.repository import ApplicationInput, add_manual, set_status
+    from src.workspace import repository as repo
+    from tests.fixtures.match_factory import QUALITY_CV
+
+    with session_scope(get_settings().database_url) as s:
+        master = repo.create_master(s, None, import_text(QUALITY_CV))
+        app = add_manual(s, ApplicationInput("Quality Engineer", "Example Devices", status="To Apply"))
+        repo.select_for_application(s, app, master)
+        set_status(s, app.id, "Application Submitted")
+        app_id = app.id
+    script = (
+        f"import sys\nsys.path.insert(0, {str(ROOT)!r})\n"
+        "from src.ui.theme import apply_theme\n"
+        "import src.pages.application_tracker as page\n"
+        "apply_theme()\npage.render()\n"
+    )
+    at = AppTest.from_string(script, default_timeout=30)
+    at.session_state["at_selected"] = app_id
+    at = at.run()
+    assert not at.exception, at.exception
+    assert any("Original Master CV" in m.value and "revision 1" in m.value for m in at.markdown)
+    assert any("This exact revision was sent" in c.value for c in at.caption)
+    next(b for b in at.button if b.label == "Create PDF of this CV").click()
+    at = at.run()
+    assert not at.exception, at.exception
+    assert len(at.get("download_button")) >= 1
+
+
+def test_settings_reports_saved_cvs_and_claude():
     html = _html(_render("settings"))
-    assert "Saved CV versions" in html and "unless you save a version" in html
+    assert "Your CVs" in html and "upload your CV in CV Studio" in html
+    assert "add ANTHROPIC_API_KEY to your .env file" in html

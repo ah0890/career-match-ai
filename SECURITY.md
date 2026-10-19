@@ -17,9 +17,12 @@ everything it receives from job sources and public data sources as untrusted.
 
 | Data | Where | When |
 | --- | --- | --- |
-| Uploaded CV file | Nowhere — processed in memory, bytes discarded after text extraction | Never stored |
-| CV text | Browser session memory | Until you delete it, refresh or close the page |
-| CV versions (extracted text only) | Local SQLite database | Only after you tick the consent box; until you delete them |
+| Uploaded CV file (CV Analysis page) | Nowhere — processed in memory | Never stored |
+| CV text (CV Analysis page) | Browser session memory | Until you delete it, refresh or close the page |
+| CV Studio: original uploaded file | `data/cv_files/`, **encrypted** (Fernet; key in the OS credential store) | Only if you tick “Keep an encrypted copy”; until you delete it |
+| CV Studio: structured CVs, revisions, suggestions, answers | Local SQLite database | Until you delete the CV |
+| CV Studio: generated PDF and DOCX files | `data/cv_files/`, **encrypted** | Until you delete the CV |
+| CV versions saved by earlier releases (text only) | Local SQLite database | Until you delete them |
 | Tracked applications, notes, study progress | Local SQLite database | Until you delete them |
 | Search history (terms and counts) | Local SQLite database | The 50 most recent; can be cleared in Settings |
 | Job-source responses and daily request counts | Local SQLite database | Cached within each source's limits; clearable in Settings |
@@ -37,7 +40,9 @@ git-ignored.
 **What leaves your computer:** search terms and filters (to the job sources you enable), company names
 (to Wikidata and Wikipedia) and, if you connect a mailbox, read-only requests to Google or Microsoft for your
 own email (the search terms include your applications' company names and contact addresses). CV content is
-never sent anywhere.
+never sent anywhere — with one opt-in exception: if you add an Anthropic API key and tick the consent box
+for a request, CV Studio sends that CV's text (with your name, email, phone, location and links removed),
+and for tailoring the job description, to Anthropic's API to get suggestions.
 
 ## Controls in place
 

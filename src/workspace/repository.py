@@ -56,8 +56,10 @@ def _clean_name(name: str) -> str:
 # --- original documents -------------------------------------------------------------------
 
 def import_source(session: Session, filename: str, data: bytes, *, max_bytes: int,
-                  ocr_text: str | None = None) -> CVSource:
-    """Validate, extract and store an uploaded CV (encrypted). Raises CVError for unusable files."""
+                  ocr_text: str | None = None, keep_file: bool = True) -> CVSource:
+    """Validate and extract an uploaded CV. The original file is stored (encrypted) only with ``keep_file``.
+
+    Raises CVError for unusable files."""
     cv = process_upload(filename, data, max_bytes)
     text = (ocr_text or cv.extraction.text).strip()
     try:
@@ -65,7 +67,8 @@ def import_source(session: Session, filename: str, data: bytes, *, max_bytes: in
     except Exception:  # styling is a nicety; never block an import over it
         style = StyleProfile.default()
     source = CVSource(filename=cv.filename, kind=cv.extraction.kind, size_bytes=cv.size_bytes, sha256=cv.sha256,
-                      blob=files.put(data), page_count=cv.extraction.page_count, extracted_text=text,
+                      blob=files.put(data) if keep_file else None, page_count=cv.extraction.page_count,
+                      extracted_text=text,
                       needs_ocr=cv.extraction.needs_ocr and not ocr_text, style_json=style.model_dump_json())
     session.add(source)
     session.flush()
@@ -78,16 +81,16 @@ def list_sources(session: Session) -> list[CVSource]:
 
 def source_bytes(source: CVSource) -> bytes:
     if not source.blob:
-        raise WorkspaceError("The original file of this import was deleted.")
+        raise WorkspaceError("The original file was not kept (or was deleted) — only its text is stored.")
     return files.get(source.blob)
 
 
 def delete_source_file(session: Session, source_id: int) -> None:
     """Delete an original file. CVs built from it keep their own content."""
     source = session.get(CVSource, source_id)
-    if source is not None:
+    if source is not None and source.blob:
         files.remove(source.blob)
-        session.delete(source)
+        source.blob = None  # the extracted text and the CVs built from it stay
 
 
 def source_style(source: CVSource | None) -> StyleProfile:

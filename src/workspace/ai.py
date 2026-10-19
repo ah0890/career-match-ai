@@ -91,19 +91,36 @@ def _client(settings: Settings):
     return anthropic.Anthropic(api_key=settings.anthropic_api_key.get_secret_value(), max_retries=2, timeout=180)
 
 
-def _call(client, settings: Settings, prompt: str) -> AIReview:
+# US$ per million tokens (input, output) — used only to show what a request cost.
+PRICES = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (5.0, 25.0)}
+
+
+def cost_note(model: str, usage) -> str:
+    """'This request cost about $0.040 (3,100 tokens in, 2,400 out).' — estimated from reported usage."""
+    tokens_in = getattr(usage, "input_tokens", 0) or 0
+    tokens_out = getattr(usage, "output_tokens", 0) or 0
+    price = next((v for k, v in PRICES.items() if model.startswith(k)), None)
+    used = f"{tokens_in:,} tokens in, {tokens_out:,} out"
+    if price is None:
+        return f"This request used {used}."
+    cost = (tokens_in * price[0] + tokens_out * price[1]) / 1_000_000
+    return f"This request cost about ${cost:.3f} ({used})."
+
+
+def _request(settings: Settings, prompt: str) -> dict:
+    """Request options chosen to keep costs low: medium effort and a capped answer length."""
+    kwargs = dict(model=settings.cv_ai_model, max_tokens=settings.cv_ai_max_tokens, system=_SYSTEM,
+                  messages=[{"role": "user", "content": prompt}], output_format=AIReview,
+                  thinking={"type": "adaptive"}, output_config={"effort": settings.cv_ai_effort})
+    if "haiku" not in settings.cv_ai_model:  # Haiku has no server-side fallback
+        kwargs.update(betas=["server-side-fallback-2026-07-01"], fallbacks="default")
+    return kwargs
+
+
+def _call(client, settings: Settings, prompt: str) -> tuple[AIReview, str]:
     import anthropic
     try:
-        response = client.beta.messages.parse(
-            model=settings.cv_ai_model,
-            max_tokens=12000,
-            system=_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-            output_format=AIReview,
-            thinking={"type": "adaptive"},
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-        )
+        response = client.beta.messages.parse(**_request(settings, prompt))
     except anthropic.AuthenticationError as exc:
         raise AIError("Anthropic rejected the API key. Check ANTHROPIC_API_KEY in your .env file.") from exc
     except anthropic.PermissionDeniedError as exc:
@@ -120,7 +137,7 @@ def _call(client, settings: Settings, prompt: str) -> AIReview:
         raise AIError("Claude declined this request. The built-in suggestions are still available.")
     if response.stop_reason == "max_tokens" or response.parsed_output is None:
         raise AIError("Claude's response was incomplete. Try again, or use the built-in suggestions.")
-    return response.parsed_output
+    return response.parsed_output, cost_note(settings.cv_ai_model, getattr(response, "usage", None))
 
 
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
@@ -185,8 +202,8 @@ def _to_suggestions(review: AIReview, content: CVDocument, *, category_default: 
 
 
 def review_with_claude(content: CVDocument, settings: Settings, *, target_roles: tuple[str, ...] = (),
-                       client=None) -> tuple[str, list[Suggestion]]:
-    """Claude's suggestions for a general review. Raises AIError when Claude cannot be used."""
+                       client=None) -> tuple[str, list[Suggestion], str]:
+    """Claude's suggestions for a general review (feedback, suggestions, cost note). Raises AIError when Claude cannot be used."""
     if not available(settings):
         raise AIError("Claude is not set up. Add ANTHROPIC_API_KEY to your .env file and restart the app.")
     cv = json.dumps(minimised(content), ensure_ascii=False)[:_MAX_CV_CHARS]
@@ -194,26 +211,26 @@ def review_with_claude(content: CVDocument, settings: Settings, *, target_roles:
     prompt = (f"Review this CV. The candidate's target roles: {roles}.\n"
               "Focus on grammar, clarity, achievement statements, structure and relevance to the target roles. "
               "Rewrite lines only where the improvement is clear.\n\n<cv>\n" + cv + "\n</cv>")
-    review = _call(client or _client(settings), settings, prompt)
-    return review.overall_feedback, _to_suggestions(review, content, category_default="language")
+    review, cost = _call(client or _client(settings), settings, prompt)
+    return review.overall_feedback, _to_suggestions(review, content, category_default="language"), cost
 
 
 def tailor_with_claude(content: CVDocument, job_title: str, job_description: str, settings: Settings, *,
-                       client=None) -> tuple[str, list[Suggestion]]:
-    """Claude's job-specific suggestions. Raises AIError when Claude cannot be used."""
+                       client=None) -> tuple[str, list[Suggestion], str]:
+    """Claude's job-specific suggestions (feedback, suggestions, cost note). Raises AIError when Claude cannot be used."""
     if not available(settings):
         raise AIError("Claude is not set up. Add ANTHROPIC_API_KEY to your .env file and restart the app.")
     cv = json.dumps(minimised(content), ensure_ascii=False)[:_MAX_CV_CHARS]
-    prompt = (f"Tailor this CV to the job below. Rewrite the most relevant experience lines so the job's priorities "
+    prompt = ("Tailor this CV to the job below. Rewrite the most relevant experience lines so the job's priorities "
               "stand out, using the job's terminology only where the CV already shows that skill, and propose a "
               "tailored professional summary (item_id 'summary'). Do not claim any requirement the CV does not "
               "show; mention genuine gaps as advice.\n\n<job title>" + job_title[:300] + "</job title>\n<job>\n"
               + job_description[:_MAX_JOB_CHARS] + "\n</job>\n\n<cv>\n" + cv + "\n</cv>")
-    review = _call(client or _client(settings), settings, prompt)
+    review, cost = _call(client or _client(settings), settings, prompt)
     suggestions = _to_suggestions(review, content, category_default="tailoring")
     for s in suggestions:
         s.category = "tailoring" if s.action != "advice" else s.category
-    return review.overall_feedback, suggestions
+    return review.overall_feedback, suggestions, cost
 
 
 __all__ = ["AIError", "DATA_NOTICE", "available", "minimised", "review_with_claude", "tailor_with_claude",

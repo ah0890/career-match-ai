@@ -219,3 +219,10 @@ def test_submitted_applications_keep_the_exact_cv_revision(db):
             repo.delete(s, version)
         assert repo.suggest_for_job(s, "himalayas:1", None, None).id == version.id
         assert repo.suggest_for_job(s, "other", "x", "y").role == "master"
+
+
+def test_role_headers_split_on_common_separators():
+    from src.workspace.importer import _parse_header
+    for sep in (" — ", " | ", " · ", " • ", " - "):
+        e = _parse_header(f"Quality Engineer{sep}Example Ltd{sep}Jan 2019 to Present")
+        assert (e.title, e.organization, e.dates) == ("Quality Engineer", "Example Ltd", "Jan 2019 to Present"), sep

@@ -356,7 +356,8 @@ class _FakeClient:
 
     def _parse(self, **kwargs):
         self.calls.append(kwargs)
-        return SimpleNamespace(stop_reason=self._stop, parsed_output=self._review)
+        return SimpleNamespace(stop_reason=self._stop, parsed_output=self._review,
+                               usage=SimpleNamespace(input_tokens=4000, output_tokens=3000))
 
 
 def test_claude_receives_no_contact_details_and_new_claims_are_flagged(monkeypatch):
@@ -376,7 +377,7 @@ def test_claude_receives_no_contact_details_and_new_claims_are_flagged(monkeypat
                     benefit="z"),
     ])
     client = _FakeClient(review_out)
-    feedback, suggestions = ai.review_with_claude(content, _ai_settings(monkeypatch), client=client)
+    feedback, suggestions, cost = ai.review_with_claude(content, _ai_settings(monkeypatch), client=client)
     sent = client.calls[0]["messages"][0]["content"]
     for private in ("Alex Example", "alex.example@example.com", "+00 000 000 000", "Example City"):
         assert private not in sent
@@ -386,6 +387,15 @@ def test_claude_receives_no_contact_details_and_new_claims_are_flagged(monkeypat
     assert "40" in invented.warnings and "Tableau" in invented.warnings
     assert summary.action == "replace" and summary.verification
     assert advice.action == "advice" and feedback == "Solid."
+    assert cost == "This request cost about $0.038 (4,000 tokens in, 3,000 out)."  # Sonnet 5.5 prices
+    assert client.calls[0]["model"] == "claude-sonnet-5-5"
+    assert client.calls[0]["output_config"] == {"effort": "medium"} and client.calls[0]["max_tokens"] == 8000
+
+
+def test_haiku_requests_leave_out_the_server_side_fallback():
+    settings = get_settings().model_copy(update={"cv_ai_model": "claude-haiku-5-5"})
+    assert "fallbacks" not in ai._request(settings, "x") and "betas" not in ai._request(settings, "x")
+    assert "fallbacks" in ai._request(get_settings(), "x")
 
 
 def test_claude_problems_fall_back_cleanly(monkeypatch):

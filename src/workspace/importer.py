@@ -18,7 +18,7 @@ from src.workspace.document import (
 from src.workspace.style import StyleProfile
 
 _BULLET = re.compile(r"^\s*(?:[-•*▪●◦‣–]|\d{1,2}[.)])\s+")
-_HEADER_SPLIT = re.compile(r"\s+[—–|]\s+|\s+-\s+|\s*\|\s*")
+_HEADER_SPLIT = re.compile(r"\s+[—–|·•]\s+|\s+-\s+|\s*\|\s*")
 _YEAR_END = re.compile(r"(?:^|\s)((?:19|20)\d{2})\s*$")
 _INLINE_SPLIT = re.compile(r"\s*[,;•·|]\s*")
 
@@ -71,7 +71,7 @@ def _parse_header(line: str) -> Entry:
     m = DATE_RANGE_RE.search(raw) or _YEAR_END.search(raw)
     if m:
         dates = m.group(0).strip()
-        raw = (raw[:m.start()] + raw[m.end():]).strip(" ,—–-|()")
+        raw = (raw[:m.start()] + raw[m.end():]).strip(" ,—–-|()·•")
     parts = [p.strip(" ,") for p in _HEADER_SPLIT.split(raw) if p.strip(" ,")]
     if len(parts) == 1 and "," in parts[0] and " at " not in parts[0]:
         parts = [p.strip() for p in parts[0].split(",", 1)]
