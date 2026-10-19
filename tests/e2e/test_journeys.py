@@ -121,12 +121,12 @@ def test_cv_journey_upload_analyse_compare_and_save_version(page, app_url, cv_pd
 
 def test_tracker_journey_feeds_the_dashboard(page, app_url):
     page.goto(f"{app_url}/application-tracker")
-    page.wait_for_selector("text=Add a job manually", timeout=30000)
-    page.get_by_text("Add a job manually").click()
+    page.wait_for_selector("text=Add an application manually", timeout=30000)
+    page.get_by_text("Add an application manually").click()
     page.get_by_label("Job title").fill("Supplier Quality Engineer")
     page.get_by_label("Company").fill("Example Devices")
     page.get_by_role("button", name="Add to tracker").click()
-    page.wait_for_selector("text=1 application", timeout=30000)
+    page.wait_for_selector("text=Total applications", timeout=30000)  # the summary appears once one exists
 
     page.goto(f"{app_url}/dashboard")
     page.wait_for_selector("text=Active applications", timeout=30000)
