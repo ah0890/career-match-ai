@@ -176,6 +176,17 @@ _BASE_CSS = """
   padding: 2px 10px; border: 1px solid var(--cm-color-border); border-radius: 6px; font-size: 14px; }
 .cm-muted { font-size: 13px; color: var(--cm-color-text-secondary); }
 
+/* ---------- Match summary (inside a job card) ---------- */
+.cm-match { display: flex; gap: var(--cm-space-md); align-items: flex-start; margin-top: var(--cm-space-md);
+  padding: var(--cm-space-md); border-radius: 10px; background: var(--cm-color-surface-subtle); border: 1px solid var(--cm-color-border); }
+.cm-match-score { flex: 0 0 auto; min-width: 84px; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent;
+  text-align: center; box-sizing: border-box; font-variant-numeric: tabular-nums; }
+.cm-match-score span { display: block; font-size: 28px; font-weight: 750; line-height: 1.1; }
+.cm-match-score small { font-size: 12px; font-weight: 500; }
+.cm-match-body { display: flex; flex-direction: column; gap: var(--cm-space-sm); min-width: 0; }
+.cm-match-row { display: flex; flex-direction: column; gap: 4px; }
+.cm-match-row > span { font-size: 12px; font-weight: 600; color: var(--cm-color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 640px) {
   .cm-page-header h1 { font-size: 24px; }
@@ -186,6 +197,7 @@ _BASE_CSS = """
   .cm-empty { padding: var(--cm-space-lg) var(--cm-space-md); }
   .cm-job { padding: var(--cm-space-md); }
   .cm-job-head { flex-direction: column; gap: 2px; }
+  .cm-match { flex-direction: column; }
 }
 """
 

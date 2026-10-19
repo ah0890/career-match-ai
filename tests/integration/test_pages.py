@@ -183,3 +183,70 @@ def test_scanned_cv_skips_analysis():
 
     at = _render_with_cv(make_image_only_pdf(), "scan.pdf")
     assert len(at.tabs) == 0
+
+
+def _render_matches(cv=None, jobs=None) -> AppTest:
+    from datetime import datetime, timezone
+
+    from src.jobs.models import SearchQuery
+    from src.providers.base import ProviderResult
+    from src.services.job_search import SearchOutcome
+
+    script = (
+        f"import sys\nsys.path.insert(0, {str(ROOT)!r})\n"
+        "from src.ui.theme import apply_theme\n"
+        "import src.pages.job_matches as page\n"
+        "apply_theme()\npage.render()\n"
+    )
+    at = AppTest.from_string(script, default_timeout=30)
+    if cv is not None:
+        at.session_state["cm_active_cv"] = cv
+    if jobs is not None:
+        at.session_state["fj_outcome"] = SearchOutcome(
+            SearchQuery(keywords="Quality Engineer"),
+            (ProviderResult("himalayas", "Himalayas", "ok", tuple(jobs)),),
+            datetime.now(timezone.utc), unique_jobs=tuple(jobs))
+    return at.run()
+
+
+def _text_cv():
+    from datetime import datetime, timezone
+
+    from src.cv.session import ActiveCV
+    from tests.fixtures.match_factory import QUALITY_CV, extraction
+
+    return ActiveCV("Alex CV.pdf", 1000, "sha", datetime.now(timezone.utc), extraction(QUALITY_CV))
+
+
+def test_job_matches_asks_for_cv_first():
+    html = _html(_render_matches())
+    assert "Upload your CV first" in html and "<article" not in html
+
+
+def test_job_matches_asks_for_search_when_cv_present():
+    html = _html(_render_matches(cv=_text_cv()))
+    assert "No jobs to match yet" in html and "<article" not in html
+
+
+def test_job_matches_ranks_jobs_with_breakdown():
+    from tests.fixtures.match_factory import SHORT_JOB, job
+
+    at = _render_matches(cv=_text_cv(), jobs=[job(SHORT_JOB, title="Quality Engineer"), job()])
+    assert not at.exception
+    html = _html(at)
+    assert "2 jobs ranked for Alex CV.pdf" in html
+    assert html.index("Senior Quality Engineer") < html.index(">Quality Engineer<")  # detailed job ranked first
+    assert html.count("/ 100 match") == 1 and html.count("/ 100 · limited information") == 1
+    assert len(at.expander) == 2 and at.expander[0].label.startswith("Score breakdown")
+    assert "Right to work" in html  # "check yourself" item from the detailed job
+    assert any("too little information" in c.value for c in at.caption)
+
+
+def test_job_matches_scanned_cv_explains_why_no_matching():
+    from datetime import datetime, timezone
+
+    from src.cv.extraction import ExtractionResult
+    from src.cv.session import ActiveCV
+
+    scanned = ActiveCV("scan.pdf", 10, "s", datetime.now(timezone.utc), ExtractionResult("", "pdf", 1, needs_ocr=True))
+    assert "could not be read" in _html(_render_matches(cv=scanned))

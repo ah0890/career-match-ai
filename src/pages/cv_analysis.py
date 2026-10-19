@@ -11,6 +11,7 @@ from src.cv.ats import analyse_cv
 from src.cv.extraction import CVError
 from src.cv.parsing import parse_cv
 from src.cv.session import ActiveCV, delete_active_cv, get_active_cv, process_upload, set_active_cv
+from src.services.matching import clear_matches
 from src.ui.components import Feature, badge_html, feature_grid, key_value, notice, page_header, section_header
 from src.ui.cv_report import render_ats, render_job_compare, render_skills, render_structure
 
@@ -115,6 +116,7 @@ def _delete_controls() -> None:
     if c1.button("Yes, delete", type="primary", icon=":material/delete_forever:", key="cv_delete_yes",
                  width="stretch"):
         delete_active_cv(st.session_state)
+        clear_matches(st.session_state)
         for key in (_CONFIRM_DELETE, "cv_job_result", "cv_job_text"):
             st.session_state.pop(key, None)
         _reset_uploader()

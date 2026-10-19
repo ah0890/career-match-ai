@@ -73,7 +73,8 @@ def _also_listed_html(job: JobPosting) -> str:
     return f'<div class="cm-job-also">Also listed on {", ".join(parts)}</div>'
 
 
-def job_card_html(job: JobPosting, snippet_chars: int = 260) -> str:
+def job_card_html(job: JobPosting, snippet_chars: int = 260, *, extra_html: str = "") -> str:
+    """``extra_html`` must come from another escaping builder (e.g. the match summary)."""
     meta = " · ".join(escape(x) for x in (job.company or "Company not provided", job.location) if x)
     fresh = assess(job)
     badges = [f'<span title="{escape(fresh.explanation, quote=True)}">{badge_html(fresh.label, fresh.tone)}</span>']
@@ -98,7 +99,7 @@ def job_card_html(job: JobPosting, snippet_chars: int = 260) -> str:
         f'<div class="cm-job-head"><h3>{escape(job.title)}</h3>'
         f'<span class="cm-job-posted">{escape(posted_label(job.posted_at))}</span></div>'
         f'<div class="cm-job-meta">{meta}</div>'
-        f'<div class="cm-badge-row">{"".join(badges)}</div>'
+        f'<div class="cm-badge-row">{"".join(badges)}</div>{extra_html}'
         f'<p class="cm-job-snippet">{escape(snippet)}</p>{_also_listed_html(job)}'
         f'<div class="cm-job-foot">{_source_html(job)}'
         f'<div class="cm-job-links">{"".join(links)}</div></div>'
