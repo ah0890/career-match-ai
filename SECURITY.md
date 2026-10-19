@@ -23,6 +23,8 @@ everything it receives from job sources and public data sources as untrusted.
 | Tracked applications, notes, study progress | Local SQLite database | Until you delete them |
 | Search history (terms and counts) | Local SQLite database | The 50 most recent; can be cleared in Settings |
 | Job-source responses and daily request counts | Local SQLite database | Cached within each source's limits; clearable in Settings |
+| Backend API accounts: email, scrypt password hash, hashed sign-in tokens | Separate local database (`data/careermatch_api.db`) | Until the account is deleted |
+| Backend API CV text and analysed jobs | Same database, linked to the account | Only after consent; deleted with the CV or account |
 | Adzuna credentials | `.env` / environment variables | Never written to the database, logs or error messages |
 
 The database lives at `data/careermatch.db` by default. It is **not encrypted** — use full-disk encryption
@@ -45,6 +47,12 @@ git-ignored.
   response limit.
 - **Errors and logs:** error messages never include request URLs or parameters, so credentials cannot leak
   through them. The app does not log CV content.
+- **Backend API:** listens on `127.0.0.1` only by default. Passwords use scrypt with a per-user salt and a
+  10-character minimum; tokens are random 256-bit values stored only as SHA-256 hashes and expire after 30 days;
+  five wrong passwords lock the account for 15 minutes, and wrong passwords and unknown emails give the same
+  answer. Every query is scoped to the signed-in account, so another account's job behaves as if it does not
+  exist. Cross-origin requests are accepted only from Chrome extensions and origins you list. Responses carry
+  `nosniff`, `DENY` framing and `no-store` headers, and validation errors never echo submitted values.
 - **Database:** all queries go through SQLAlchemy with bound parameters.
 - **Dependencies:** pinned versions, checked with `pip-audit` (no known vulnerabilities at the time of the
   last review).
@@ -60,8 +68,9 @@ git-ignored.
 
 ## Deployment
 
-The app is built for local use. Do **not** expose it on a network or the internet as it is: it has no
-authentication, no per-user data separation and stores data unencrypted. A shared deployment would need
+The app is built for local use. Do **not** expose the Streamlit app on a network or the internet as it is: it
+has no authentication, no per-user data separation and stores data unencrypted. The backend API has accounts
+and per-user separation but serves plain HTTP; put it behind HTTPS before making it reachable from another device. A shared deployment would need
 authentication, access control, encrypted storage, HTTPS and a hardened host first.
 
 ## Reporting a vulnerability

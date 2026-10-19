@@ -88,6 +88,20 @@ class Settings(BaseSettings):
     adzuna_default_country: str | None = Field(None, pattern=r"^[a-z]{2}$")
     adzuna_daily_limit: int = Field(250, ge=1, le=250)
 
+    # --- Backend API (accounts, used by the browser extension) -------------
+    api_database_url: str = f"sqlite:///{(DATA_DIR / 'careermatch_api.db').as_posix()}"
+    api_host: str = "127.0.0.1"  # loopback only unless you deliberately change it (see SECURITY.md)
+    api_port: int = Field(8600, ge=1024, le=65535)
+    api_token_days: int = Field(30, ge=1, le=365)
+    api_max_failed_logins: int = Field(5, ge=3, le=20)
+    api_lockout_minutes: int = Field(15, ge=1, le=1440)
+    # Extra browser origins allowed to call the API (comma-separated), e.g. a web front end.
+    api_cors_origins: str = ""
+
+    @property
+    def api_cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]
+
     @property
     def scoring_weights(self) -> ScoringWeights:
         return ScoringWeights(

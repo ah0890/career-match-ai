@@ -15,3 +15,8 @@ beautifulsoup4==4.15.0
 
 # Development / testing
 pytest==9.1.1
+
+# Backend API (accounts, browser extension)
+fastapi==0.148.0
+uvicorn==0.54.0
+python-multipart==0.0.32

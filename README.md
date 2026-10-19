@@ -19,6 +19,7 @@ ask you to state what is genuinely true. The core app needs no paid AI service.
 - [Job sources](#job-sources)
 - [Privacy and data](#privacy-and-data)
 - [Configuration](#configuration)
+- [Backend API](#backend-api)
 - [Testing](#testing)
 - [Architecture](#architecture)
 - [Roadmap](#roadmap)
@@ -188,6 +189,36 @@ the app at start-up with a clear error.
 | `CAREERMATCH_<SOURCE>_ENABLED` | `true` | Switch a source off (`REMOTIVE`, `HIMALAYAS`, `JOBICY`, `REMOTEOK`, `ADZUNA`) |
 | `CAREERMATCH_ADZUNA_APP_ID`, `CAREERMATCH_ADZUNA_APP_KEY` | — | Adzuna credentials |
 | `CAREERMATCH_ADZUNA_DEFAULT_COUNTRY` | — | Two-letter country code used when a search gives none |
+| `CAREERMATCH_API_DATABASE_URL` | `sqlite:///data/careermatch_api.db` | Account database for the backend API |
+| `CAREERMATCH_API_HOST`, `CAREERMATCH_API_PORT` | `127.0.0.1`, `8600` | Where the backend API listens |
+| `CAREERMATCH_API_TOKEN_DAYS` | `30` | How long a sign-in lasts |
+| `CAREERMATCH_API_MAX_FAILED_LOGINS`, `CAREERMATCH_API_LOCKOUT_MINUTES` | `5`, `15` | Sign-in lockout after repeated wrong passwords |
+
+## Backend API
+
+A local API with user accounts. The Chrome extension (next milestone) uses it, and it lets several people use one
+installation with their data kept apart. The Streamlit app does not need it.
+
+```powershell
+.venv\Scripts\python -m src.api
+```
+
+Open <http://127.0.0.1:8600/api/docs> to try every endpoint in the browser: register, sign in (copy the token
+into **Authorize**), upload a CV, analyse a job, then get interview questions, tailoring suggestions and a
+tailored DOCX or PDF.
+
+| Endpoint | What it does |
+| --- | --- |
+| `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout` | Create an account, sign in (returns a bearer token), sign out |
+| `GET /api/me`, `DELETE /api/me` | Account summary; delete the account and all its data |
+| `PUT /api/cv`, `GET /api/cv`, `DELETE /api/cv` | Upload a CV (needs `consent=true`; only the text is kept), see its ATS summary, delete it |
+| `POST /api/jobs/analyze` | Match a job (title, description, optional company, location and links) against your CV and save it |
+| `GET /api/jobs`, `GET /api/jobs/{id}`, `DELETE /api/jobs/{id}` | Your saved jobs and their full analysis |
+| `GET /api/jobs/{id}/interview` | Interview preparation for the job |
+| `GET /api/jobs/{id}/tailoring`, `POST /api/jobs/{id}/tailored-cv` | Tailoring suggestions; the tailored CV as text, DOCX or PDF |
+
+Passwords are hashed with scrypt; sign-in tokens are stored only as hashes; repeated wrong passwords lock the
+account for a few minutes; each account sees only its own CV and jobs. See [SECURITY.md](SECURITY.md).
 
 ## Testing
 
@@ -221,6 +252,7 @@ src/matching/          Skill taxonomy, requirement extraction, matching engine, 
 src/company/           Company lookup (Wikidata, Wikipedia) and relevance to your search
 src/interview/         Interview questions and study plans
 src/tailoring/         Job-specific CV edits and DOCX/PDF export
+src/api/               Backend API: accounts, tokens and per-account CV, jobs, preparation and tailoring
 src/tracker/           Application tracker operations
 src/analytics/         Dashboard figures from real activity
 src/db/                SQLAlchemy models and engine, persistent HTTP cache
@@ -242,11 +274,10 @@ The original plan (milestones 1–21) and CV tailoring (milestone 22) are comple
 
 | Milestone | Area |
 | --- | --- |
-| 23 | Chrome browser extension (Manifest V3) |
-| 24 | Freemium plan: one free full job workflow, then a paid subscription with server-side entitlements |
-| 25 | Integration, security and verification for the extension and subscription (needs a backend API with authentication) |
-| 26 | Multi-language support: CV and job content in several languages, and an interface in English, Arabic, Urdu, Hindi, Spanish, French, German, Portuguese and Chinese (with right-to-left layouts) |
-| — | Optional AI layer: only with your explicit consent and data minimisation; the app keeps working without it |
+| 23 | Chrome browser extension (Manifest V3), using the backend API |
+| 24 | Freemium plan: one free full job workflow, then $9/month (Stripe, test mode first) with server-side entitlements |
+| 25 | Integration, security and verification for the extension and subscription |
+| 26 | Multi-language support, starting with English, Arabic and Urdu (with right-to-left layouts) |
 
 ## Troubleshooting
 

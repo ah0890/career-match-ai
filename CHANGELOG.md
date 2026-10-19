@@ -14,6 +14,29 @@ and decisions worth knowing).
   need a backend API with user accounts.
 - Milestone 26 — multi-language support.
 
+## Milestone 23a — Backend API with accounts — 2026-10-19
+
+### Added
+
+- A local backend API (`python -m src.api`, docs at `/api/docs`) with accounts: register, sign in, sign out,
+  account summary and account deletion.
+- Per-account CV upload (with consent; only the text is kept), job analysis with the full explainable match,
+  recommendation and improvement suggestions, saved jobs, interview preparation, tailoring suggestions and
+  tailored CVs as text, DOCX or PDF.
+- New settings for the API database, host, port, sign-in duration and lockout.
+
+### Security
+
+- scrypt password hashing, hashed 256-bit bearer tokens with expiry, lockout after repeated failures and
+  identical answers for wrong passwords and unknown emails.
+- Every query is scoped to the signed-in account; CORS only for Chrome extensions and listed origins;
+  security headers on every response; loopback-only by default.
+
+### Notes
+
+- Account data lives in its own database so the single-user app's data is never mixed with it.
+- This is the groundwork for the Chrome extension (milestone 23) and the paid plan (milestone 24).
+
 ## Milestone 22 — Job-specific CV tailoring — 2026-10-19 (`d19f967`)
 
 ### Added
