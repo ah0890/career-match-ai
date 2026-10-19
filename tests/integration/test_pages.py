@@ -237,9 +237,11 @@ def test_job_matches_ranks_jobs_with_breakdown():
     assert "2 jobs ranked for Alex CV.pdf" in html
     assert html.index("Senior Quality Engineer") < html.index(">Quality Engineer<")  # detailed job ranked first
     assert html.count("/ 100 match") == 1 and html.count("/ 100 · limited information") == 1
-    assert len(at.expander) == 2 and at.expander[0].label.startswith("Score breakdown")
+    assert len(at.expander) == 2 and at.expander[0].label.startswith("Why ")
     assert "Right to work" in html  # "check yourself" item from the detailed job
     assert any("too little information" in c.value for c in at.caption)
+    assert "Apply after improvement" in html and "Don&#x27;t prioritize" in html
+    assert "not a prediction of being shortlisted or hired" in " ".join(c.value for c in at.caption)
 
 
 def test_job_matches_scanned_cv_explains_why_no_matching():

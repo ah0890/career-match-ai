@@ -184,6 +184,7 @@ _BASE_CSS = """
 .cm-match-score span { display: block; font-size: 28px; font-weight: 750; line-height: 1.1; }
 .cm-match-score small { font-size: 12px; font-weight: 500; }
 .cm-match-body { display: flex; flex-direction: column; gap: var(--cm-space-sm); min-width: 0; }
+.cm-match-headline { font-size: 14px; font-weight: 600; color: var(--cm-color-text-primary); margin: 0; }
 .cm-match-row { display: flex; flex-direction: column; gap: 4px; }
 .cm-match-row > span { font-size: 12px; font-weight: 600; color: var(--cm-color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
 

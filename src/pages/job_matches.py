@@ -7,9 +7,10 @@ import streamlit as st
 from config.settings import get_settings
 from src.cv.session import get_active_cv
 from src.matching.engine import MATCH_LIMITATIONS
+from src.matching.recommendations import RECOMMENDATION_DISCLAIMER, Label, prioritise
 from src.pages.find_jobs import OUTCOME_KEY
 from src.services.matching import ranked_matches
-from src.ui.components import Feature, notice, page_header, section_header
+from src.ui.components import Feature, Metric, metric_grid, notice, page_header, section_header
 from src.ui.layouts import call_to_action, empty_page_body
 from src.ui.match_cards import match_card_html, render_breakdown
 
@@ -58,20 +59,29 @@ def render() -> None:
     settings = get_settings()
     with st.spinner("Matching jobs with your CV…"):
         results = ranked_matches(st.session_state, cv, outcome, settings.scoring_weights)
-    low = sum(r.confidence == "Low" for r in results)
+    ranked = prioritise(results, settings.thresholds)
+    low = sum(m.result.confidence == "Low" for m in ranked)
     section_header(
-        f"{len(results)} job{'s' if len(results) != 1 else ''} ranked for {cv.filename}",
+        f"{len(ranked)} job{'s' if len(ranked) != 1 else ''} ranked for {cv.filename}",
         f"From your search for “{outcome.query.keywords}”. Matching runs on this computer; nothing is sent to "
         "external services.",
     )
-    st.caption(MATCH_LIMITATIONS)
+    counts = {label: sum(m.recommendation.label is label for m in ranked) for label in Label}
+    t = settings.thresholds
+    metric_grid([
+        Metric("Apply", str(counts[Label.APPLY]), f"Score {t.apply:g}+ with no essential gaps"),
+        Metric("Apply after improvement", str(counts[Label.APPLY_AFTER_IMPROVEMENT]),
+               f"Score {t.improve:g}+, or an essential requirement not shown"),
+        Metric("Don't prioritize", str(counts[Label.DONT_PRIORITIZE]), f"Score below {t.improve:g}, or expired"),
+    ])
+    st.caption(f"{MATCH_LIMITATIONS} {RECOMMENDATION_DISCLAIMER}")
     if low:
         st.caption(f"{low} job(s) have too little information in their description for a reliable score; they are "
                    "listed after the others.")
-    for i, result in enumerate(results):
-        st.html(match_card_html(result))
-        with st.expander(f"Score breakdown — {result.score}/100, {result.confidence.lower()} confidence",
-                         icon=":material/analytics:"):
-            render_breakdown(result)
-        if i < len(results) - 1:
+    for i, m in enumerate(ranked):
+        st.html(match_card_html(m.result, m.recommendation))
+        with st.expander(f"Why {m.recommendation.label.value} — score {m.result.score}/100, "
+                         f"{m.result.confidence.lower()} confidence", icon=":material/analytics:"):
+            render_breakdown(m.result, m.recommendation)
+        if i < len(ranked) - 1:
             st.write("")

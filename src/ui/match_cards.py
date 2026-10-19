@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from html import escape
+
 import streamlit as st
 
 from src.matching.engine import MatchResult
+from src.matching.recommendations import RECOMMENDATION_DISCLAIMER, Recommendation
 from src.ui.components import ListItem, badge_html, item_list, notice
 from src.ui.job_cards import job_card_html
 from src.ui.score_components import Bar, bars_html, chips_html, score_tone
@@ -20,12 +23,13 @@ def _chips(items: tuple[str, ...], tone: str) -> str:
     return chips_html(shown, tone)
 
 
-def match_summary_html(result: MatchResult) -> str:
+def match_summary_html(result: MatchResult, rec: Recommendation | None = None) -> str:
     # A low-confidence score is shown neutrally so a high number on thin data is not read as a strong match.
     low = result.confidence == "Low"
     tone = "neutral" if low else score_tone(result.score)
     caption = "/ 100 · limited information" if low else "/ 100 match"
-    badges = [badge_html(f"{result.confidence} confidence", _CONFIDENCE_TONE[result.confidence])]
+    badges = [badge_html(rec.label.value, rec.tone)] if rec else []
+    badges.append(badge_html(f"{result.confidence} confidence", _CONFIDENCE_TONE[result.confidence]))
     if result.mandatory_gaps:
         n = len(result.mandatory_gaps)
         badges.append(badge_html(f"{n} essential requirement{'s' if n != 1 else ''} not found", "danger"))
@@ -38,17 +42,18 @@ def match_summary_html(result: MatchResult) -> str:
                     f'{_chips(result.missing_required_skills, "warning")}</div>')
     if not rows:
         rows.append('<p class="cm-muted">No recognisable skills were listed in this job description.</p>')
+    headline = f'<p class="cm-match-headline">{escape(rec.headline)}</p>' if rec else ""
     return (
         f'<div class="cm-match">'
         f'<div class="cm-match-score cm-tone-{tone}" role="img" aria-label="Match score {result.score} out of 100">'
         f'<span>{result.score}</span><small>{caption}</small></div>'
-        f'<div class="cm-match-body"><div class="cm-badge-row">{"".join(badges)}</div>{"".join(rows)}</div>'
+        f'<div class="cm-match-body"><div class="cm-badge-row">{"".join(badges)}</div>{headline}{"".join(rows)}</div>'
         f"</div>"
     )
 
 
-def match_card_html(result: MatchResult) -> str:
-    return job_card_html(result.job, extra_html=match_summary_html(result))
+def match_card_html(result: MatchResult, rec: Recommendation | None = None) -> str:
+    return job_card_html(result.job, extra_html=match_summary_html(result, rec))
 
 
 def breakdown_bars_html(result: MatchResult) -> str:
@@ -60,7 +65,24 @@ def breakdown_bars_html(result: MatchResult) -> str:
     return bars_html(bars)
 
 
-def render_breakdown(result: MatchResult) -> None:
+_ACTION_TONE = {"High": "danger", "Medium": "warning", "Low": "neutral"}
+
+
+def render_recommendation(rec: Recommendation) -> None:
+    st.markdown(f"**Recommendation: {rec.label.value}** — {rec.headline}")
+    item_list(ListItem(r, badge="Why", tone="info") for r in rec.reasons)
+    if rec.actions:
+        st.markdown("**What you could do**")
+        item_list(ListItem(a.title, a.detail, a.priority, _ACTION_TONE[a.priority]) for a in rec.actions)
+    for c in rec.caveats:
+        st.caption(c)
+    st.caption(RECOMMENDATION_DISCLAIMER)
+
+
+def render_breakdown(result: MatchResult, rec: Recommendation | None = None) -> None:
+    if rec is not None:
+        render_recommendation(rec)
+        st.divider()
     st.caption(result.limitations)
     if result.mandatory_gaps:
         notice("The job states these as essential, and they were not found in your CV. If you have them, make "
