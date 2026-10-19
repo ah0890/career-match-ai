@@ -237,11 +237,13 @@ def test_job_matches_ranks_jobs_with_breakdown():
     assert "2 jobs ranked for Alex CV.pdf" in html
     assert html.index("Senior Quality Engineer") < html.index(">Quality Engineer<")  # detailed job ranked first
     assert html.count("/ 100 match") == 1 and html.count("/ 100 · limited information") == 1
-    assert len(at.expander) == 2 and at.expander[0].label.startswith("Why ")
+    assert len([e for e in at.expander if e.label.startswith("Why ")]) == 2
+    assert len([e for e in at.expander if e.label == "Full job description"]) == 2
     assert "Right to work" in html  # "check yourself" item from the detailed job
     assert any("too little information" in c.value for c in at.caption)
     assert "Apply after improvement" in html and "Don&#x27;t prioritize" in html
     assert "not a prediction of being shortlisted or hired" in " ".join(c.value for c in at.caption)
+    assert "help you decide where to spend your effort" in " ".join(c.value for c in at.caption)
 
 
 def test_job_matches_scanned_cv_explains_why_no_matching():
@@ -252,3 +254,36 @@ def test_job_matches_scanned_cv_explains_why_no_matching():
 
     scanned = ActiveCV("scan.pdf", 10, "s", datetime.now(timezone.utc), ExtractionResult("", "pdf", 1, needs_ocr=True))
     assert "could not be read" in _html(_render_matches(cv=scanned))
+
+
+def test_job_matches_filters_and_comparison():
+    from tests.fixtures.match_factory import SHORT_JOB, job
+
+    jobs = [job(), job(SHORT_JOB, title="Quality Engineer", source_job_id="short"),
+            job("Requirements\n- SEO and HubSpot\n- 3+ years of experience in digital marketing\n" + "Marketing. " * 90,
+                title="Marketing Manager", source_job_id="mkt")]
+    at = _render_matches(cv=_text_cv(), jobs=jobs)
+    at.slider(key="jm_min_score").set_value(80).run()
+    html = _html(at)
+    assert "Marketing Manager" not in html and "hidden by filters" in " ".join(c.value for c in at.caption)
+
+    at.slider(key="jm_min_score").set_value(100).run()
+    assert "No jobs match these filters" in _html(at)
+
+    at.slider(key="jm_min_score").set_value(0).run()
+    keys = at.multiselect(key="jm_compare").options
+    assert len(keys) == 3
+    at.multiselect(key="jm_compare").select(keys[0]).select(keys[1]).run()
+    html = _html(at)
+    assert "cm-compare" in html and "Essential requirements not found" in html
+
+
+def test_job_matches_pages_long_result_lists():
+    from tests.fixtures.match_factory import job
+
+    jobs = [job(source_job_id=str(i), title=f"Quality Engineer {i}") for i in range(20)]
+    at = _render_matches(cv=_text_cv(), jobs=jobs)
+    assert _html(at).count("/ 100 match") == 15
+    at.button(key="jm_next_bottom").click().run()
+    assert _html(at).count("/ 100 match") == 5
+    assert any("Showing 16–20 of 20" in c.value for c in at.caption)

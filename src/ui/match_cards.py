@@ -6,10 +6,12 @@ from html import escape
 
 import streamlit as st
 
+from src.jobs.freshness import assess
+from src.jobs.models import JobPosting
 from src.matching.engine import MatchResult
-from src.matching.recommendations import RECOMMENDATION_DISCLAIMER, Recommendation
+from src.matching.recommendations import RECOMMENDATION_DISCLAIMER, RankedMatch, Recommendation
 from src.ui.components import ListItem, badge_html, item_list, notice
-from src.ui.job_cards import job_card_html
+from src.ui.job_cards import _ARRANGEMENT_LABELS, _salary, job_card_html, posted_label
 from src.ui.score_components import Bar, bars_html, chips_html, score_tone
 
 _CONFIDENCE_TONE = {"High": "success", "Medium": "info", "Low": "warning"}
@@ -108,3 +110,47 @@ def render_breakdown(result: MatchResult, rec: Recommendation | None = None) -> 
     st.caption(" ".join(result.confidence_reasons))
     for n in result.notes:
         st.caption(n)
+
+
+def description_html(job: JobPosting) -> str:
+    """The full job description as plain text with its line breaks kept (escaped, never rendered as HTML)."""
+    text = job.description.strip() or "The source did not provide a description."
+    return f'<div class="cm-job-desc">{escape(text)}</div>'
+
+
+def comparison_html(matches: list[RankedMatch]) -> str:
+    """Side-by-side comparison of a few ranked matches."""
+    def pct(m, key):
+        c = next(c for c in m.result.components if c.key == key)
+        return f"{c.percent}%" if c.assessed else "Not assessed"
+
+    def listing(items, empty):
+        return ", ".join(items) if items else empty
+
+    rows: list[tuple[str, list[str]]] = [
+        ("Company", [m.result.job.company or "Not provided" for m in matches]),
+        ("Recommendation", [m.recommendation.label.value for m in matches]),
+        ("Match score", [f"{m.result.score} / 100" + (" (limited information)" if m.result.confidence == "Low" else "")
+                         for m in matches]),
+        ("Confidence", [m.result.confidence for m in matches]),
+        *[(c.label, [pct(m, c.key) for m in matches]) for c in matches[0].result.components],
+        ("Essential requirements not found", [listing([g.requirement for g in m.result.mandatory_gaps], "None")
+                                              for m in matches]),
+        ("Required skills not found", [listing(m.result.missing_required_skills, "None") for m in matches]),
+        ("Skills found in your CV", [listing(m.result.matched_skills, "None recognised") for m in matches]),
+        ("Location", [m.result.job.location or "Not provided" for m in matches]),
+        ("Work arrangement", [_ARRANGEMENT_LABELS.get(m.result.job.work_arrangement, "Not provided")
+                              for m in matches]),
+        ("Salary", [_salary(m.result.job) or "Not provided" for m in matches]),
+        ("Posted", [posted_label(m.result.job.posted_at) for m in matches]),
+        ("Freshness", [assess(m.result.job).label for m in matches]),
+        ("Source", [m.result.job.source_name for m in matches]),
+    ]
+    head = "".join(f'<th scope="col">{escape(m.result.job.title)}</th>' for m in matches)
+    body = "".join(
+        f'<tr><th scope="row">{escape(label)}</th>{"".join(f"<td>{escape(v)}</td>" for v in values)}</tr>'
+        for label, values in rows
+    )
+    cols = '<colgroup><col class="cm-compare-label">' + "<col>" * len(matches) + "</colgroup>"
+    return (f'<div class="cm-card cm-compare-wrap"><table class="cm-compare">{cols}'
+            f'<thead><tr><td></td>{head}</tr></thead><tbody>{body}</tbody></table></div>')

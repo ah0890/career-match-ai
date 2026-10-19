@@ -188,6 +188,18 @@ _BASE_CSS = """
 .cm-match-row { display: flex; flex-direction: column; gap: 4px; }
 .cm-match-row > span { font-size: 12px; font-weight: 600; color: var(--cm-color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
 
+/* ---------- Job description & comparison ---------- */
+.cm-job-desc { white-space: pre-line; font-size: 14px; line-height: 1.6; color: var(--cm-color-text-primary);
+  max-height: 480px; overflow-y: auto; }
+.cm-compare-wrap { overflow-x: auto; padding: 0; }
+.cm-compare { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; table-layout: fixed; }
+.cm-compare col.cm-compare-label { width: 200px; }
+.cm-compare th, .cm-compare td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--cm-color-border); }
+.cm-compare thead th { font-weight: 650; color: var(--cm-color-text-primary); background: var(--cm-color-surface-subtle); }
+.cm-compare tbody th { font-weight: 600; color: var(--cm-color-text-secondary); }
+.cm-compare td { overflow-wrap: anywhere; }
+.cm-compare tbody tr:last-child th, .cm-compare tbody tr:last-child td { border-bottom: none; }
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 640px) {
   .cm-page-header h1 { font-size: 24px; }
