@@ -63,7 +63,7 @@ def test_steps_label_state_in_text():
 def test_navigation_has_all_primary_pages_with_unique_paths():
     titles = [p.title for p in PAGES]
     assert titles == [
-        "Dashboard", "Find Jobs", "CV Analysis", "Job Matches", "Company Intelligence",
+        "Dashboard", "Find Jobs", "CV Analysis", "Job Matches", "Tailor CV", "Company Intelligence",
         "Interview Preparation", "Application Tracker", "CV Versions", "Settings",
     ]
     assert len({p.url_path for p in PAGES}) == len(PAGES)

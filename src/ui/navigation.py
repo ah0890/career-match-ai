@@ -22,6 +22,7 @@ PAGES: tuple[PageSpec, ...] = (
     PageSpec("Find Jobs", "find-jobs", ":material/travel_explore:", "find_jobs", "Discover"),
     PageSpec("CV Analysis", "cv-analysis", ":material/description:", "cv_analysis", "Discover"),
     PageSpec("Job Matches", "job-matches", ":material/fact_check:", "job_matches", "Discover"),
+    PageSpec("Tailor CV", "tailor-cv", ":material/edit_document:", "tailor_cv", "Prepare"),
     PageSpec("Company Intelligence", "company-intelligence", ":material/domain:",
              "company_intelligence", "Prepare"),
     PageSpec("Interview Preparation", "interview-preparation", ":material/school:",
