@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 10 — match filters, sorting and comparison). CVs can be uploaded, parsed and analysed, real jobs can be searched across several permitted job sources at once, and results are ranked against your CV with the evidence behind every score, a recommendation (APPLY, APPLY AFTER IMPROVEMENT or DON'T PRIORITIZE), filters and side-by-side comparison. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated. See [CHANGELOG.md](CHANGELOG.md) for what changed in each milestone.
+> **Status:** early development (Milestone 13 — interview preparation). CVs can be uploaded, parsed and analysed, real jobs can be searched across several permitted job sources at once, and results are ranked against your CV with the evidence behind every score, a recommendation (APPLY, APPLY AFTER IMPROVEMENT or DON'T PRIORITIZE), filters and side-by-side comparison. Each job also gets a CV improvement plan, sourced company research and interview preparation. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated. See [CHANGELOG.md](CHANGELOG.md) for what changed in each milestone.
 
 ## Planned features
 
@@ -18,9 +18,10 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | Explainable CV-to-job matching | ✅ Done |
 | Recommendations (APPLY / IMPROVE / DON'T PRIORITIZE) | ✅ Done |
 | Match filters, sorting and side-by-side comparison | ✅ Done |
-| Keyword gaps and CV improvement suggestions | Planned |
-| Company intelligence with source attribution | Planned |
-| Interview preparation & study plans | Planned |
+| Keyword gaps and CV improvement suggestions | ✅ Done |
+| Company intelligence with source attribution (Wikidata, Wikipedia) | ✅ Done |
+| Interview preparation | ✅ Done |
+| Study plans with progress tracking | Planned |
 | Application tracker & dashboard | Planned |
 | CV version management | Planned |
 
@@ -37,7 +38,9 @@ src/cv/session.py      The active CV for the current browser session
 src/cv/parsing.py      Section, contact, date, bullet and skill parsing
 src/cv/ats.py          Transparent ATS scoring and job keyword alignment
 src/matching/skills.py Skill taxonomy and boundary-aware skill extraction
-src/matching/          Requirement extraction, matching engine, recommendations, filtering/comparison
+src/matching/          Requirement extraction, matching engine, recommendations, filtering/comparison, CV improvement plan
+src/company/           Company lookup (Wikidata, Wikipedia) and relevance to your search
+src/interview/         Interview preparation plans
 src/jobs/              Job models, normalisation and local filtering
 src/providers/         Provider interface, HTTP layer (timeouts, retries, budgets, cache), registry, adapters
 src/services/          Multi-source search service and shared runtime resources
@@ -194,6 +197,7 @@ python -m playwright install chromium
 - Uploaded CVs are processed in memory; the original file is not stored and CV content is never logged.
 - `.env`, databases, uploaded documents and everything under `data/` are git-ignored.
 - No CV content is sent to external services unless an optional integration is added later and you explicitly consent.
+- Company research sends only the company name to Wikidata and Wikipedia.
 
 This is a single-user local application. A shared or public deployment would need authentication, access control, secure hosting and production hardening first.
 

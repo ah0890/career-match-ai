@@ -9,8 +9,67 @@ and decisions worth knowing).
 ## [Unreleased]
 
 ### Planned
-- Milestone 11 — keyword gaps and CV improvement suggestions for a chosen job, based only on what the
-  CV already contains.
+- Milestone 14 — study plans for the skills a chosen job needs, with progress tracking.
+
+## Milestone 13 — Interview preparation — 2026-10-19 (`c5d533f`)
+
+### Added
+- Likely interview questions for a chosen job: opening and motivation, technical questions for the
+  skills your CV shows, behavioural questions for soft skills, questions about the role's
+  responsibilities and honest questions about gaps.
+- For every question: why it may come up (quoting the job), the lines of your CV to draw on, and how to
+  prepare (STAR structure for behavioural answers).
+- "Why this company?" uses researched company facts only when they belong to the same employer.
+- Questions to ask the interviewer, including requirements to confirm (for example, right to work),
+  and a pre-interview checklist.
+- Filter by question type; download the plan as a Markdown file.
+- "Prepare for interview" and "Research company" buttons on every job in Job Matches.
+
+### Notes
+- Questions are predictions from the job description, not the employer's actual questions. Answers
+  are never written for you.
+- 397 offline tests.
+
+## Milestone 12 — Company intelligence — 2026-10-19 (`3cd2391`)
+
+### Added
+- Company lookup on Wikidata. Matching entries are listed for you to confirm, with likely
+  organisations first; nothing is assumed.
+- Company profile: Wikipedia summary with attribution and licence; key facts (industry, founding date,
+  headquarters, country, employees, products, stock exchange, ownership); current leadership. Every
+  fact links to its source and shows the date the source gives.
+- Relevance to your search: roles at the company in your results, with their match score and
+  recommendation, labelled as analysis rather than fact.
+- Companies from your search results can be picked directly.
+
+### Changed
+- Requests identify the app with a contact URL, as the Wikimedia API policy asks.
+
+### Notes
+- Former office holders and deprecated statements are excluded; missing facts are listed as "not
+  available".
+- Wikidata and Wikipedia are volunteer-edited, so profiles recommend checking important facts on the
+  company's website.
+- Only the company name is sent; requests are spaced, cached for a day and capped daily.
+- Employer names must match after removing suffixes such as Ltd or AG; subsidiaries are not merged.
+- 385 offline tests.
+
+## Milestone 11 — Keyword gaps and CV improvement plan — 2026-10-19 (`6d52ee8`)
+
+### Added
+- For each job: how your CV evidences each required skill — in experience, in education, listed
+  without context, or not found — with the job's own sentence.
+- Prioritised suggestions: essential and required skills not found, skills listed but not shown in a
+  role, preferred skills, the job's repeated terms your CV does not use, and summary focus.
+- Tips for your CV bullets most relevant to the job: measurable results, action verbs, first person,
+  length.
+- Available as "Improve your CV for this job" on Job Matches and on the CV Analysis "Compare with a
+  job" tab, which now also accepts an optional job title.
+
+### Notes
+- Suggestions never supply content; they ask you to state only what is true. Bullet tips never
+  borrow figures from elsewhere in your CV.
+- 368 offline tests.
 
 ## Milestone 10 — Match filters, sorting and comparison — 2026-10-19 (`ac1afdd`)
 
