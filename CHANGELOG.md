@@ -10,7 +10,43 @@ and decisions worth knowing).
 
 ### Planned
 
-- Milestone 20 — end-to-end testing of complete user journeys and final polish.
+- Milestone 22 — job-specific CV tailoring: preview suggested edits, accept or reject each, download DOCX and
+  PDF, and keep tailored versions.
+
+## Milestone 21 — Documentation — 2026-10-19
+
+### Changed
+
+- README rewritten as a complete guide: quick start, what each page does, how match scores, recommendations
+  and the ATS score work, job and company sources, privacy and data, every configuration setting, testing
+  (including end-to-end journeys), architecture, roadmap and troubleshooting.
+- The README no longer describes the app as AI-powered: every score comes from transparent rules, and the
+  optional AI layer is listed on the roadmap.
+
+### Notes
+
+- This completes the original plan (milestones 1–21).
+
+## Milestone 20 — End-to-end testing and polish — 2026-10-19 (`4fbed70`)
+
+### Added
+
+- Optional end-to-end browser journeys (Playwright) against the real app in offline mode with a temporary
+  database: every page opens without errors; upload, analyse, compare with a job and save a CV version with
+  consent; add a tracked application and see it on the dashboard. Run with `CAREERMATCH_RUN_E2E=1`.
+
+### Fixed
+
+- Company search now retries without legal suffixes such as Corp or Ltd when the full name finds nothing
+  (found while testing with live job data), and says which name was searched.
+- Recommendation filter labels no longer truncate on narrower screens.
+- Thinner bars on the applications-by-status chart.
+
+### Notes
+
+- The complete journey was verified against live job sources and Wikidata. Pages were checked at phone width
+  with no horizontal scrolling.
+- 463 offline tests, plus 3 end-to-end journeys.
 
 ## Milestone 19 — Security review — 2026-10-19 (`6446217`)
 
