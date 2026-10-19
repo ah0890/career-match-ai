@@ -13,6 +13,7 @@ from src.matching.browse import (COMPARE_LIMIT, SORT_LABELS, MatchFilter, filter
 from src.matching.recommendations import Label, RankedMatch, prioritise
 from src.pages.company_intelligence import PREFILL_KEY as COMPANY_PREFILL_KEY
 from src.pages.find_jobs import OUTCOME_KEY
+from src.pages.interview_preparation import PREFILL_KEY as INTERVIEW_PREFILL_KEY
 from src.matching.improvements import improvement_plan
 from src.services.matching import match_profile, ranked_matches
 from src.ui.components import Feature, Metric, empty_state, metric_grid, notice, page_header, section_header
@@ -170,8 +171,12 @@ def render() -> None:
             render_improvement_plan(improvement_plan(match_profile(st.session_state, cv), m.result))
         with st.expander("Full job description", icon=":material/article:"):
             st.html(description_html(m.result.job))
-        if m.result.job.company and st.button(f"Research {m.result.job.company}", icon=":material/domain:",
-                                               key=f"jm_research_{start + i}"):
+        a1, a2, _ = st.columns([1, 1, 1])
+        if a1.button("Prepare for interview", icon=":material/school:", key=f"jm_prep_{start + i}", width="stretch"):
+            st.session_state[INTERVIEW_PREFILL_KEY] = m.result.job.key
+            go_to("interview-preparation")
+        if m.result.job.company and a2.button("Research company", icon=":material/domain:",
+                                              key=f"jm_research_{start + i}", width="stretch"):
             st.session_state[COMPANY_PREFILL_KEY] = m.result.job.company
             go_to("company-intelligence")
         if i < len(page_items) - 1:

@@ -334,3 +334,44 @@ def test_company_intelligence_lists_companies_from_results_and_renders_profile()
     assert "CC BY-SA 4.0" in html and "Official website" in html
     assert any("Not available from these sources: Products" in c.value for c in at.caption)
     assert "Relevance to your search" in html and "Senior Quality Engineer" in html
+
+
+def _render_page_with(module, cv=None, jobs=None, state=None) -> AppTest:
+    from datetime import datetime, timezone
+
+    from src.jobs.models import SearchQuery
+    from src.providers.base import ProviderResult
+    from src.services.job_search import SearchOutcome
+
+    script = (f"import sys\nsys.path.insert(0, {str(ROOT)!r})\n"
+              f"from src.ui.theme import apply_theme\nimport src.pages.{module} as page\napply_theme()\npage.render()\n")
+    at = AppTest.from_string(script, default_timeout=30)
+    if cv is not None:
+        at.session_state["cm_active_cv"] = cv
+    if jobs is not None:
+        at.session_state["fj_outcome"] = SearchOutcome(
+            SearchQuery(keywords="Quality Engineer"), (ProviderResult("himalayas", "Himalayas", "ok", tuple(jobs)),),
+            datetime.now(timezone.utc), unique_jobs=tuple(jobs))
+    for k, v in (state or {}).items():
+        at.session_state[k] = v
+    return at.run()
+
+
+def test_interview_preparation_empty_states():
+    assert "Upload your CV first" in _html(_render_page_with("interview_preparation"))
+    assert "No jobs to prepare for yet" in _html(_render_page_with("interview_preparation", cv=_text_cv()))
+
+
+def test_interview_preparation_builds_plan_for_prefilled_job():
+    from tests.fixtures.match_factory import SHORT_JOB, job
+
+    jobs = [job(), job(SHORT_JOB, title="Quality Engineer", source_job_id="short")]
+    at = _render_page_with("interview_preparation", cv=_text_cv(), jobs=jobs, state={"ip_prefill": jobs[1].key})
+    assert not at.exception
+    assert at.selectbox(key="ip_job").value == jobs[1].key
+    at.selectbox(key="ip_job").set_value(jobs[0].key).run()
+    html = _html(at)
+    assert "Tell me about yourself." in html and "Why it may come up" in html and "From your CV" in html
+    assert "Questions to ask the interviewer" in html
+    assert len(at.get("download_button")) == 1
+    assert any("predictions based on the job description" in str(el.value) for el in at.get("html"))

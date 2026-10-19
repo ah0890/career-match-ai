@@ -215,6 +215,13 @@ _BASE_CSS = """
 .cm-fact-source { white-space: nowrap; width: 1%; }
 .cm-source-list { margin: 0; padding-left: 20px; font-size: 14px; }
 
+/* ---------- Interview questions ---------- */
+.cm-question { padding: var(--cm-space-lg); margin-bottom: var(--cm-space-md); }
+.cm-question h3 { font-size: 17px; font-weight: 650; line-height: 1.4; margin: var(--cm-space-sm) 0; padding: 0; color: var(--cm-color-text-primary); }
+.cm-question p { font-size: 14px; line-height: 1.55; margin: 2px 0 var(--cm-space-sm) 0; color: var(--cm-color-text-primary); }
+.cm-q-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--cm-color-text-secondary); margin-top: var(--cm-space-sm); }
+.cm-q-material { margin: 4px 0 var(--cm-space-sm) 0; padding-left: 20px; font-size: 14px; line-height: 1.5; color: var(--cm-color-text-primary); }
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 640px) {
   .cm-page-header h1 { font-size: 24px; }
