@@ -447,3 +447,25 @@ def test_find_jobs_records_history_and_searches_again():
 def test_settings_shows_stored_job_data_controls():
     html = _html(_render("settings"))
     assert "Stored job data" in html and "Cached source responses" in html
+
+
+def test_dashboard_shows_metrics_charts_and_top_matches_from_real_data():
+    from config.settings import get_settings
+    from src.db.engine import session_scope
+    from src.tracker.repository import ApplicationInput, add_manual, set_status
+    from tests.fixtures.match_factory import job
+
+    with session_scope(get_settings().database_url) as s:
+        app_id = add_manual(s, ApplicationInput("Quality Engineer", "Example Devices")).id
+    with session_scope(get_settings().database_url) as s:
+        set_status(s, app_id, "Applied")
+    jobs = [job(), job(source_job_id="2", title="Quality Lead"), job(source_job_id="3", title="Quality Manager")]
+    at = _render_page_with("dashboard", cv=_text_cv(), jobs=jobs)
+    assert not at.exception
+    html = _html(at)
+    assert "No activity yet" not in html
+    assert "Strong matches" in html and "Active applications" in html
+    assert "Top matches in your latest results" in html
+    assert len(at.get("plotly_chart")) == 3  # pipeline, weekly applications, score distribution
+    assert sum(1 for e in at.expander if e.label == "View as table") == 3
+    assert "Done" in html
