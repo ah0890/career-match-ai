@@ -348,13 +348,16 @@ class CVQuestion(Base):
 
 
 class CVFile(Base):
-    """A generated PDF (stored encrypted) with the result of its validation."""
+    """A generated PDF or DOCX (stored encrypted) with the result of its validation."""
 
     __tablename__ = "cv_files"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     doc_id: Mapped[int] = mapped_column(ForeignKey("cv_docs.id", ondelete="CASCADE"), index=True)
     revision_number: Mapped[int | None] = mapped_column(Integer)
+    # Added by migration 3: the file type and the job application it was made for.
+    kind: Mapped[str] = mapped_column(String(5), default="pdf")  # pdf / docx
+    application_id: Mapped[int | None] = mapped_column(ForeignKey("applications.id", ondelete="SET NULL"))
     blob: Mapped[str] = mapped_column(String(80))
     filename: Mapped[str] = mapped_column(String(200))
     page_count: Mapped[int] = mapped_column(Integer)

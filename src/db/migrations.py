@@ -57,9 +57,14 @@ def _m2_cv_workspace(conn: Connection) -> None:
     _add_columns(conn, "applications", {"cv_doc_id": "INTEGER", "cv_revision_number": "INTEGER"})
 
 
+def _m3_cv_exports(conn: Connection) -> None:
+    _add_columns(conn, "cv_files", {"kind": "VARCHAR(5) NOT NULL DEFAULT 'pdf'", "application_id": "INTEGER"})
+
+
 MIGRATIONS: tuple[tuple[int, str, Callable[[Connection], None]], ...] = (
     (1, "recruitment tracking", _m1_recruitment_tracking),
     (2, "cv workspace", _m2_cv_workspace),
+    (3, "cv exports", _m3_cv_exports),
 )
 
 

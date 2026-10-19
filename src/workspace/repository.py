@@ -2,6 +2,8 @@
 
 Rules this module enforces:
 * an original upload is stored once (encrypted) and never modified;
+* the master CV ("Original Master CV") is the permanent reference: it is never edited. General
+  improvements go to a separate *Revised Master CV* that the user approves explicitly;
 * the master CV and every version are independent copies — editing one never changes another;
 * revisions are immutable snapshots; restoring creates a new revision instead of rewriting history;
 * a version used by a job application cannot be deleted (it can be archived), and the exact
@@ -97,7 +99,55 @@ def source_style(source: CVSource | None) -> StyleProfile:
 # --- documents & revisions -------------------------------------------------------------------
 
 def get_master(session: Session) -> CVDoc | None:
-    return session.scalar(select(CVDoc).where(CVDoc.role == "master"))
+    """The current Original Master CV (earlier masters are archived when a new CV is uploaded)."""
+    return session.scalar(select(CVDoc).where(CVDoc.role == "master", CVDoc.status != "archived")
+                          .order_by(CVDoc.id.desc()).limit(1))
+
+
+def get_revised(session: Session, master: CVDoc | None = None) -> CVDoc | None:
+    """The Revised Master CV of the current master, if the user has started one."""
+    master = master or get_master(session)
+    if master is None:
+        return None
+    return session.scalar(select(CVDoc).where(CVDoc.role == "revised", CVDoc.parent_id == master.id,
+                                              CVDoc.status != "archived").order_by(CVDoc.id.desc()).limit(1))
+
+
+def working_master(session: Session) -> CVDoc:
+    """The Revised Master CV, created from the original master the first time it is needed."""
+    master = get_master(session)
+    if master is None:
+        raise WorkspaceError("Upload your CV first.")
+    revised = get_revised(session, master)
+    if revised is None:
+        revised = create_version(session, master, name="Revised Master CV", role="revised")
+    return revised
+
+
+def approve(session: Session, doc: CVDoc) -> None:
+    """The user approves a draft (a Revised Master CV or a tailored CV) as ready to use."""
+    if doc.role == "master":
+        raise WorkspaceError("The original master CV does not need approval.")
+    doc.status = "approved"
+    doc.updated_at = _now()
+    session.flush()
+
+
+def tailoring_base(session: Session) -> CVDoc | None:
+    """What new tailored CVs start from: the approved Revised Master CV, else the original master."""
+    revised = get_revised(session)
+    if revised is not None and revised.status == "approved":
+        return revised
+    return get_master(session)
+
+
+def label(doc: CVDoc) -> str:
+    """A clear, human label, e.g. "Original Master CV" or "Tailored CV — Quality Engineer"."""
+    if doc.role == "master":
+        return "Original Master CV" + (" (replaced)" if doc.status == "archived" else "")
+    if doc.role == "revised":
+        return "Revised Master CV — " + ("User Approved" if doc.status == "approved" else "Draft")
+    return doc.name if doc.name.startswith("Tailored CV") else f"Tailored CV — {doc.name}"
 
 
 def get_doc(session: Session, doc_id: int) -> CVDoc:
@@ -108,7 +158,7 @@ def get_doc(session: Session, doc_id: int) -> CVDoc:
 
 
 def list_docs(session: Session, include_archived: bool = False) -> list[CVDoc]:
-    query = select(CVDoc).order_by((CVDoc.role != "master"), CVDoc.updated_at.desc())
+    query = select(CVDoc).order_by((CVDoc.role != "master"), (CVDoc.role != "revised"), CVDoc.updated_at.desc())
     if not include_archived:
         query = query.where(CVDoc.status != "archived")
     return list(session.scalars(query))
@@ -142,11 +192,16 @@ def snapshot(session: Session, doc: CVDoc, kind: str, note: str) -> CVRevision:
 def save(session: Session, doc: CVDoc, content: CVDocument | None = None, fmt: FormatSettings | None = None, *,
          revision: tuple[str, str] | None = None) -> CVDoc:
     """Persist the working copy; with ``revision=(kind, note)`` also record a revision."""
+    if doc.role == "master":
+        raise WorkspaceError("The original master CV is never changed. Your edits go to the Revised Master CV.")
+    before = (doc.content_json, doc.format_json)
     if content is not None:
         doc.content_json = content.model_dump_json()
     if fmt is not None:
         doc.format_json = fmt.model_dump_json()
     doc.updated_at = _now()
+    if doc.status == "approved" and (doc.content_json, doc.format_json) != before:
+        doc.status = "draft"  # changed after approval: needs approving again
     session.flush()
     if revision:
         snapshot(session, doc, *revision)
@@ -154,21 +209,25 @@ def save(session: Session, doc: CVDoc, content: CVDocument | None = None, fmt: F
 
 
 def create_master(session: Session, source: CVSource | None, content: CVDocument | None = None) -> CVDoc:
-    """Create the master CV from an import — or, if one exists, replace its content as a new revision."""
+    """Create the Original Master CV from an import.
+
+    Uploading a new CV never overwrites the old master: the old one (and its Revised Master CV) is
+    archived and stays available, and versions made from it keep working.
+    """
     content = content or import_text(source.extracted_text if source else "")
     fmt = FormatSettings.from_profile(source_style(source)) if source else FormatSettings()
-    master = get_master(session)
-    note = f"Imported from {source.filename}" if source else "Created"
-    if master is None:
-        master = CVDoc(role="master", name="Master CV", status="draft", source_id=source.id if source else None,
-                       content_json=content.model_dump_json(), format_json=fmt.model_dump_json())
-        session.add(master)
-        session.flush()
-        snapshot(session, master, "import", note)
-        return master
-    snapshot(session, master, "edit", "Before importing a replacement CV")  # the previous content stays restorable
-    master.source_id = source.id if source else master.source_id
-    return save(session, master, content, fmt, revision=("import", note))
+    previous = get_master(session)
+    if previous is not None:
+        previous.status = "archived"
+        if (revised := get_revised(session, previous)) is not None:
+            revised.status = "archived"
+    master = CVDoc(role="master", name=unique_name(session, "Original Master CV"), status="approved",
+                   source_id=source.id if source else None,
+                   content_json=content.model_dump_json(), format_json=fmt.model_dump_json())
+    session.add(master)
+    session.flush()
+    snapshot(session, master, "import", f"Imported from {source.filename}" if source else "Created")
+    return master
 
 
 def unique_name(session: Session, name: str) -> str:
@@ -184,17 +243,17 @@ def unique_name(session: Session, name: str) -> str:
 def default_version_name(target_title: str | None, company: str | None) -> str:
     title = " ".join((target_title or "").split())
     if title and company:
-        return f"{title} — {company}"
-    return f"{title} — Optimised CV" if title else "Optimised CV"
+        return f"Tailored CV — {title} ({company})"
+    return f"Tailored CV — {title}" if title else "Tailored CV"
 
 
 def create_version(session: Session, base: CVDoc, *, name: str | None = None, target_title: str | None = None,
                    target_company: str | None = None, job_description: str | None = None,
-                   job_key: str | None = None) -> CVDoc:
-    """A new, independent copy of ``base`` (usually the master)."""
+                   job_key: str | None = None, role: str = "version") -> CVDoc:
+    """A new, independent copy of ``base`` (usually the master or the approved Revised Master CV)."""
     rev = latest_revision(session, base) or snapshot(session, base, "edit", "Saved")
     version = CVDoc(
-        role="version", status="draft",
+        role=role, status="draft",
         name=unique_name(session, _clean_name(name or default_version_name(target_title, target_company))),
         target_title=(target_title or "").strip()[:300] or None, target_company=(target_company or "").strip()[:300] or None,
         job_description=(job_description or "").strip()[:60000] or None, job_key=job_key,
@@ -245,6 +304,8 @@ def delete(session: Session, doc: CVDoc) -> None:
 
 def restore(session: Session, doc: CVDoc, number: int) -> CVRevision:
     """Bring back an earlier revision's content as a new revision; nothing is overwritten."""
+    if doc.role == "master":
+        raise WorkspaceError("The original master CV never changes, so there is nothing to restore.")
     old = get_revision(session, doc, number)
     snapshot(session, doc, "edit", "Before restoring")
     doc.content_json, doc.format_json = old.content_json, old.format_json
@@ -255,8 +316,8 @@ def restore(session: Session, doc: CVDoc, number: int) -> CVRevision:
 
 def update_contact_from_master(session: Session, version: CVDoc) -> None:
     """Copy the master's contact details into a version (the user chooses which versions)."""
-    master = get_master(session)
-    if master is None or version.role == "master":
+    master = tailoring_base(session)
+    if master is None or version.role == "master" or master.id == version.id:
         return
     content = load(version)
     content.contact = load(master).contact.model_copy()
@@ -328,7 +389,7 @@ def suggest_for_job(session: Session, job_key: str | None, title: str | None, co
         if d.role == "version" and norm(d.target_company) and norm(d.target_company) == norm(company) \
                 and norm(d.target_title) == norm(title):
             return d
-    return get_master(session)
+    return tailoring_base(session)
 
 
 def select_for_application(session: Session, app: Application, doc: CVDoc) -> None:

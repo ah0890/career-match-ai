@@ -101,7 +101,8 @@ def test_versions_are_independent_of_the_master_and_each_other(db):
         master = repo.get_doc(s, master_id)
         a = repo.create_version(s, master, target_title="Quality Engineer", target_company="Company A")
         b = repo.create_version(s, master, target_title="QA Specialist", target_company="Company B")
-        assert (a.name, b.name) == ("Quality Engineer — Company A", "QA Specialist — Company B")
+        assert (a.name, b.name) == ("Tailored CV — Quality Engineer (Company A)",
+                                    "Tailored CV — QA Specialist (Company B)")
         content = repo.load(a)
         item = next(i for _, _, i in content.iter_items())
         content.set_item_text(item.id, "Changed only in A", "edited")
@@ -114,10 +115,30 @@ def test_versions_are_independent_of_the_master_and_each_other(db):
         assert "Changed only in A" not in texts[master_id] and "Changed only in A" not in texts[b_id]
 
 
-def test_revisions_are_immutable_and_restore_creates_a_new_one(db):
+def test_the_original_master_is_never_changed(db):
     master_id, _ = _master(db)
     with session_scope(db) as s:
         master = repo.get_doc(s, master_id)
+        with pytest.raises(repo.WorkspaceError, match="never changed"):
+            repo.save(s, master, repo.load(master), revision=("edit", "x"))
+        revised = repo.working_master(s)
+        assert revised.role == "revised" and revised.parent_id == master_id
+        assert repo.working_master(s).id == revised.id  # one per master
+        assert repo.label(master) == "Original Master CV" and repo.label(revised) == "Revised Master CV — Draft"
+        assert repo.tailoring_base(s).id == master_id  # until the revision is approved
+        repo.approve(s, revised)
+        assert repo.label(revised) == "Revised Master CV — User Approved" and repo.tailoring_base(s).id == revised.id
+        content = repo.load(revised)
+        content.contact.headline = "Changed"
+        repo.save(s, revised, content, revision=("edit", "x"))
+        assert revised.status == "draft"  # edited after approval: approve again
+
+
+def test_revisions_are_immutable_and_restore_creates_a_new_one(db):
+    _master(db)
+    with session_scope(db) as s:
+        master = repo.working_master(s)
+        master_id = master.id
         original = master.content_json
         content = repo.load(master)
         content.contact.headline = "Quality Engineer"
@@ -141,7 +162,9 @@ def test_replacing_the_master_keeps_the_previous_content(db):
     with session_scope(db) as s:
         docx = repo.import_source(s, "new.docx", make_docx(), max_bytes=5_000_000)
         master = repo.create_master(s, docx)
-        assert master.id == master_id and len(master.revisions) >= 2
+        assert master.id != master_id and repo.get_master(s).id == master.id
+        old = repo.get_doc(s, master_id)
+        assert old.status == "archived" and repo.label(old) == "Original Master CV (replaced)"
 
 
 def test_compare_highlights_added_removed_and_changed(db):

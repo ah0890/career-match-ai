@@ -89,7 +89,7 @@ class Settings(BaseSettings):
 
     # --- CV workspace ----------------------------------------------------
     cv_storage_dir: Path = DATA_DIR / "cv_files"  # encrypted originals and generated PDFs
-    cv_ai_enabled: bool = False  # optional Claude recommendations; needs anthropic_api_key
+    cv_ai_enabled: bool = True  # Claude review and tailoring; used only when ANTHROPIC_API_KEY is set
     anthropic_api_key: SecretStr | None = Field(None, validation_alias="ANTHROPIC_API_KEY")
     cv_ai_model: str = "claude-opus-5-5"
 

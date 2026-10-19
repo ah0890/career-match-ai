@@ -12,9 +12,11 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 FontFamily = Literal["sans-serif", "serif"]
-Template = Literal["original", "classic", "modern"]
+Template = Literal["original", "classic", "modern", "technical"]
+TEMPLATE_LABELS = {"original": "Like my original", "classic": "Classic professional", "modern": "Modern minimal",
+                   "technical": "Technical & engineering"}
 
-# Readability limits the one-page fitter never goes below.
+# Readability limits the layout never goes below (also when fitting a CV onto one page).
 MIN_BODY_SIZE = 9.0
 MIN_MARGIN = 36.0  # 0.5 inch
 PAGE_SIZES = {"a4": (595.0, 842.0), "letter": (612.0, 792.0)}

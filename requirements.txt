@@ -24,3 +24,6 @@ python-multipart==0.0.32
 # Email tracking (encrypted OAuth tokens; key kept in the OS credential store)
 cryptography==50.0.2
 keyring==25.7.0
+
+# Optional CV review and tailoring with Claude (used only when ANTHROPIC_API_KEY is set)
+anthropic==1.15.0
