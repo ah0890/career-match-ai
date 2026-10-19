@@ -375,3 +375,20 @@ def test_interview_preparation_builds_plan_for_prefilled_job():
     assert "Questions to ask the interviewer" in html
     assert len(at.get("download_button")) == 1
     assert any("predictions based on the job description" in str(el.value) for el in at.get("html"))
+
+
+def test_interview_study_plan_tracks_progress():
+    from tests.fixtures.match_factory import job
+
+    desc = "Requirements\n- Kubernetes is essential\n- Minitab and SQL\n" + "Quality work. " * 60
+    jobs = [job(desc)]
+    at = _render_page_with("interview_preparation", cv=_text_cv(), jobs=jobs)
+    assert not at.exception
+    assert [t.label for t in at.tabs] == ["Questions", "Study plan"]
+    html = _html(at)
+    assert "Learn the essentials of Kubernetes" in html and "Official documentation" in html
+    key = f"ip_status_{jobs[0].key}_learn:Kubernetes"
+    at.segmented_control(key=key).set_value("Prepared").run()
+    assert at.session_state["ip_progress"][jobs[0].key]["learn:Kubernetes"] == "Prepared"
+    bar = at.get("progress")[0]
+    assert bar.proto.text == "1 of 4 topics prepared" and bar.value == 25

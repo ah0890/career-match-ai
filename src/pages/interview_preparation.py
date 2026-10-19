@@ -9,11 +9,13 @@ import streamlit as st
 from config.settings import get_settings
 from src.cv.session import get_active_cv
 from src.interview.prep import build_prep_plan, plan_markdown
+from src.interview.study import STATUSES, build_study_plan, progress
+from src.matching.improvements import improvement_plan
 from src.matching.recommendations import prioritise
 from src.pages.find_jobs import OUTCOME_KEY
 from src.services.matching import match_profile, ranked_matches
 from src.ui.components import Feature, ListItem, item_list, notice, page_header, section_header
-from src.ui.interview_view import question_card_html
+from src.ui.interview_view import question_card_html, study_topic_html
 from src.ui.layouts import empty_page_body
 
 PREFILL_KEY = "ip_prefill"  # a job key set by Job Matches
@@ -23,7 +25,10 @@ _FEATURES = [
     Feature("Your own material", "The lines of your CV each question can draw on — examples are never invented."),
     Feature("STAR guidance", "A structure for every answer, plus honest ways to handle requirements your CV does "
             "not show."),
+    Feature("Study plan and progress", "Topics to learn or prepare for this job, ordered by priority, with "
+            "Not started, Preparing and Prepared tracking."),
 ]
+_PROGRESS_KEY = "ip_progress"  # {job key: {topic id: status}}
 
 
 def _empty(title: str, message: str, cta_label: str, target: str) -> None:
@@ -62,8 +67,16 @@ def render() -> None:
             format_func=lambda k: f"{by_key[k].result.job.title} — {by_key[k].result.job.company or 'company not provided'}"
                                   f" · {by_key[k].recommendation.label.value} ({by_key[k].result.score})")
     match = by_key[key]
-    plan = build_prep_plan(match_profile(st.session_state, cv), match.result, st.session_state.get("ci_profile"))
+    profile = match_profile(st.session_state, cv)
+    plan = build_prep_plan(profile, match.result, st.session_state.get("ci_profile"))
+    tab_q, tab_study = st.tabs(["Questions", "Study plan"])
+    with tab_q:
+        _questions(plan)
+    with tab_study:
+        _study(match, improvement_plan(profile, match.result))
 
+
+def _questions(plan) -> None:
     notice(plan.disclaimer, tone="info")
     for n in plan.notes:
         st.caption(n)
@@ -83,3 +96,23 @@ def render() -> None:
     item_list(ListItem(q) for q in plan.questions_to_ask)
     section_header("Before the interview")
     item_list(ListItem(c, badge="To do", tone="neutral") for c in plan.checklist)
+
+
+def _study(match, improvements) -> None:
+    job_key = match.result.job.key
+    interview_on = st.date_input("Interview date (optional)", value=None, key=f"ip_date_{job_key}", format="DD/MM/YYYY")
+    study = build_study_plan(match.result, improvements, interview_on)
+    if study.schedule_note:
+        notice(study.schedule_note, tone="warning" if (study.days_left or 0) <= 2 else "info")
+    statuses = st.session_state.setdefault(_PROGRESS_KEY, {}).setdefault(job_key, {})
+    done, total = progress(statuses, study)
+    st.progress(done / total if total else 0.0, text=f"{done} of {total} topics prepared")
+    st.caption("Effort is a relative suggestion, not a time estimate. Progress is kept for this browser session.")
+    for t in study.topics:
+        with st.container(border=True):
+            st.html(study_topic_html(t))
+            value = st.segmented_control("Status", STATUSES, default=statuses.get(t.id, "Not started"),
+                                         key=f"ip_status_{job_key}_{t.id}", label_visibility="collapsed")
+            if value and statuses.get(t.id, "Not started") != value:
+                statuses[t.id] = value
+                st.rerun()
