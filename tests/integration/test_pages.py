@@ -172,10 +172,13 @@ def test_cv_job_compare_validates_and_shows_alignment():
     assert any("longer job description" in e.value for e in at.error)
 
     jd = ("Quality Engineer with Six Sigma, FMEA, SPC and IATF 16949. " * 12).strip()
+    at.text_input(key="cv_job_title").input("Quality Engineer")
     at.text_area(key="cv_job_text").input(jd)
     next(b for b in at.button if b.label == "Compare with my CV").click().run()
+    assert not at.exception
     html = _html(at)
     assert "Job keyword alignment" in html and "IATF 16949" in html
+    assert "Improve your CV for this job" in html and "IATF 16949: not found in your CV" in html
 
 
 def test_scanned_cv_skips_analysis():
@@ -239,6 +242,8 @@ def test_job_matches_ranks_jobs_with_breakdown():
     assert html.count("/ 100 match") == 1 and html.count("/ 100 · limited information") == 1
     assert len([e for e in at.expander if e.label.startswith("Why ")]) == 2
     assert len([e for e in at.expander if e.label == "Full job description"]) == 2
+    assert len([e for e in at.expander if e.label == "Improve your CV for this job"]) == 2
+    assert "Only add what is true" in html and "In experience" in html
     assert "Right to work" in html  # "check yourself" item from the detailed job
     assert any("too little information" in c.value for c in at.caption)
     assert "Apply after improvement" in html and "Don&#x27;t prioritize" in html

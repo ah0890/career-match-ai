@@ -11,6 +11,7 @@ from src.cv.ats import analyse_cv
 from src.cv.extraction import CVError
 from src.cv.parsing import parse_cv
 from src.cv.session import ActiveCV, delete_active_cv, get_active_cv, process_upload, set_active_cv
+from src.matching.engine import profile_from
 from src.services.matching import clear_matches
 from src.ui.components import Feature, badge_html, feature_grid, key_value, notice, page_header, section_header
 from src.ui.cv_report import render_ats, render_job_compare, render_skills, render_structure
@@ -117,7 +118,7 @@ def _delete_controls() -> None:
                  width="stretch"):
         delete_active_cv(st.session_state)
         clear_matches(st.session_state)
-        for key in (_CONFIRM_DELETE, "cv_job_result", "cv_job_text"):
+        for key in (_CONFIRM_DELETE, "cv_job_result", "cv_job_text", "cv_job_title"):
             st.session_state.pop(key, None)
         _reset_uploader()
         st.session_state[_FLASH] = "Your CV was deleted."
@@ -179,4 +180,4 @@ def render() -> None:
     with tab_skills:
         render_skills(parsed)
     with tab_job:
-        render_job_compare(cv.extraction.text)
+        render_job_compare(profile_from(cv.extraction.text, parsed, report), settings.scoring_weights)

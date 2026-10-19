@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import streamlit as st
 
+from config.settings import ScoringWeights
 from src.cv.ats import ATSReport, JobAlignment, job_alignment
 from src.cv.parsing import SECTION_LABELS, ParsedCV
+from src.jobs.models import JobPosting
+from src.matching.engine import MatchProfile, match_job
+from src.matching.improvements import improvement_plan
 from src.ui.components import ListItem, item_list, key_value, notice, section_header
+from src.ui.match_cards import render_improvement_plan
 from src.ui.score_components import Bar, bars_html, chips_html, score_card_html, score_tone
 
 _PRIORITY_TONE = {"High": "danger", "Medium": "warning", "Low": "neutral"}
@@ -128,10 +133,13 @@ def _alignment_band(score: int) -> str:
             "danger": "Low alignment"}[tone]
 
 
-def render_job_compare(cv_text: str) -> None:
-    st.caption("Paste a job description to see which of its skills and key terms appear in your CV. This is "
-               "separate from the ATS score above, which measures formatting and structure only.")
+def render_job_compare(profile: MatchProfile, weights: ScoringWeights) -> None:
+    st.caption("Paste a job description to see which of its skills and key terms appear in your CV, and how to "
+               "strengthen your CV for it. This is separate from the ATS score above, which measures formatting "
+               "and structure only.")
     with st.form("cv_job_compare", border=False):
+        title = st.text_input("Job title (optional)", key="cv_job_title", max_chars=150,
+                              placeholder="e.g. Quality Engineer")
         jd = st.text_area("Job description", height=220, max_chars=20000, key="cv_job_text",
                           placeholder="Paste the full job description here…")
         go = st.form_submit_button("Compare with my CV", type="primary", icon=":material/compare_arrows:")
@@ -141,7 +149,13 @@ def render_job_compare(cv_text: str) -> None:
                      icon=":material/error:")
             st.session_state.pop("cv_job_result", None)
         else:
-            st.session_state["cv_job_result"] = job_alignment(cv_text, jd)
+            job = JobPosting(provider_id="pasted", source_name="Pasted description",
+                             title=title.strip() or "Pasted job", description=jd)
+            match = match_job(profile, job, weights)
+            st.session_state["cv_job_result"] = (job_alignment(profile.text, jd), improvement_plan(profile, match))
     result = st.session_state.get("cv_job_result")
     if result is not None:
-        _render_alignment(result)
+        alignment, plan = result
+        _render_alignment(alignment)
+        section_header("Improve your CV for this job")
+        render_improvement_plan(plan)

@@ -12,10 +12,12 @@ from src.matching.browse import (COMPARE_LIMIT, SORT_LABELS, MatchFilter, filter
                                  source_names)
 from src.matching.recommendations import Label, RankedMatch, prioritise
 from src.pages.find_jobs import OUTCOME_KEY
-from src.services.matching import ranked_matches
+from src.matching.improvements import improvement_plan
+from src.services.matching import match_profile, ranked_matches
 from src.ui.components import Feature, Metric, empty_state, metric_grid, notice, page_header, section_header
 from src.ui.layouts import call_to_action, empty_page_body
-from src.ui.match_cards import comparison_html, description_html, match_card_html, render_breakdown
+from src.ui.match_cards import (comparison_html, description_html, match_card_html, render_breakdown,
+                                render_improvement_plan)
 
 _FEATURES = [
     Feature("Explainable scores", "Required skills, experience, responsibilities, education and "
@@ -162,6 +164,8 @@ def render() -> None:
         with st.expander(f"Why {m.recommendation.label.value} — score {m.result.score}/100, "
                          f"{m.result.confidence.lower()} confidence", icon=":material/analytics:"):
             render_breakdown(m.result, m.recommendation)
+        with st.expander("Improve your CV for this job", icon=":material/edit_note:"):
+            render_improvement_plan(improvement_plan(match_profile(st.session_state, cv), m.result))
         with st.expander("Full job description", icon=":material/article:"):
             st.html(description_html(m.result.job))
         if i < len(page_items) - 1:

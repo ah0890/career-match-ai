@@ -138,3 +138,14 @@ def test_ranked_matches_are_cached_until_inputs_change():
     assert ranked_matches(state, _active_cv("other"), outcome, DEFAULT_WEIGHTS) is not first
     clear_matches(state)
     assert state == {}
+
+
+def test_match_profile_is_cached_per_cv_and_cleared():
+    from src.services.matching import match_profile
+
+    state: dict = {}
+    first = match_profile(state, _active_cv())
+    assert match_profile(state, _active_cv()) is first
+    assert match_profile(state, _active_cv("new")) is not first
+    clear_matches(state)
+    assert state == {}

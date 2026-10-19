@@ -9,6 +9,7 @@ import streamlit as st
 from src.jobs.freshness import assess
 from src.jobs.models import JobPosting
 from src.matching.engine import MatchResult
+from src.matching.improvements import ImprovementPlan
 from src.matching.recommendations import RECOMMENDATION_DISCLAIMER, RankedMatch, Recommendation
 from src.ui.components import ListItem, badge_html, item_list, notice
 from src.ui.job_cards import _ARRANGEMENT_LABELS, _salary, job_card_html, posted_label
@@ -154,3 +155,37 @@ def comparison_html(matches: list[RankedMatch]) -> str:
     cols = '<colgroup><col class="cm-compare-label">' + "<col>" * len(matches) + "</colgroup>"
     return (f'<div class="cm-card cm-compare-wrap"><table class="cm-compare">{cols}'
             f'<thead><tr><td></td>{head}</tr></thead><tbody>{body}</tbody></table></div>')
+
+
+_EVIDENCE_BADGE = {"shown in experience": "In experience", "shown in education": "In education",
+                   "listed only": "Listed only", "not found": "Not found"}
+_EVIDENCE_TONE = {"shown in experience": "success", "shown in education": "success", "listed only": "info",
+                  "not found": "warning"}
+
+
+def render_improvement_plan(plan: ImprovementPlan) -> None:
+    notice(plan.note, tone="info")
+    if plan.suggestions:
+        st.markdown("**Suggested changes**")
+        item_list(ListItem(s.title, s.detail, s.priority, _ACTION_TONE[s.priority], f"Where: {s.where}")
+                  for s in plan.suggestions)
+    if plan.skills:
+        st.markdown("**How your CV evidences the job's skills**")
+        st.caption(f"{plan.count('shown in experience')} shown in your experience, "
+                   f"{plan.count('shown in education')} shown in education, {plan.count('listed only')} listed "
+                   f"without context, {plan.count('not found')} not found.")
+        item_list(
+            ListItem(s.name, f"Job says: “{s.job_says}”" if s.job_says else "From the source's tags for this job.",
+                     _EVIDENCE_BADGE[s.evidence], _EVIDENCE_TONE[s.evidence],
+                     "Essential" if s.essential else ("Required" if s.required else "Preferred"))
+            for s in plan.skills
+        )
+    if plan.keyword_gaps:
+        st.markdown("**Job terms your CV does not use**")
+        item_list(ListItem(f"“{k.keyword}”", f"Job says: “{k.job_says}”" if k.job_says else None,
+                           "Not found", "neutral") for k in plan.keyword_gaps)
+    if plan.bullet_tips:
+        st.markdown("**Your most relevant bullets, and how to strengthen them**")
+        for tip in plan.bullet_tips:
+            item_list([ListItem(tip.bullet, " ".join(tip.tips), "Bullet", "info",
+                                f"Relates to: {', '.join(tip.related_to)}" if tip.related_to else None)])
