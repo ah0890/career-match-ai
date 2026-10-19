@@ -107,11 +107,12 @@ class Decision:
 
 
 def apply_detected(app: Application, kind: str, *, occurred_at: datetime, summary: str, confidence: float,
-                   message_id: int | None = None) -> Decision:
+                   message_id: int | None = None, confirmed_by_user: bool = False) -> Decision:
     """Record an email-detected event and move the status forward when it is safe to.
 
     The event is always added to the timeline. The status changes only when:
-    * the event is newer than the user's own last status change (manual corrections are never overwritten),
+    * the event is newer than the user's own last status change (manual corrections are never overwritten
+      by sync; the user confirming an email in the review queue is itself a manual decision),
     * it moves the application forward in the process — a late "we received your application" never
       undoes an interview — except a rejection, which ends any open stage except an offer,
     * and the application is not closed (Rejected / Withdrawn).
@@ -122,7 +123,7 @@ def apply_detected(app: Application, kind: str, *, occurred_at: datetime, summar
     if kind not in STATUS_RANK:
         return Decision(False, "recorded on the timeline")
     manual = _aware(app.status_set_manually_at)
-    if manual is not None and occurred_at <= manual:
+    if not confirmed_by_user and manual is not None and occurred_at <= manual:
         return Decision(False, "you set the status yourself after this email")
     if app.status in CLOSED:
         return Decision(False, f"the application is {app.status.lower()}")
