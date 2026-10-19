@@ -40,9 +40,9 @@ _ARRANGEMENTS = {"Remote": WorkArrangement.REMOTE, "Hybrid": WorkArrangement.HYB
 
 def _filters(ranked: list[RankedMatch]) -> tuple[MatchFilter, str]:
     with st.container(border=True):
-        c1, c2, c3 = st.columns([3, 2, 2])
-        labels = c1.pills("Recommendation", [label.value for label in Label], selection_mode="multi",
+        labels = st.pills("Recommendation", [label.value for label in Label], selection_mode="multi",
                           default=[label.value for label in Label], key="jm_labels") or []
+        c2, c3 = st.columns(2)
         min_score = c2.slider("Minimum score", 0, 100, 0, step=5, key="jm_min_score")
         sort = c3.selectbox("Sort by", list(SORT_LABELS), format_func=SORT_LABELS.get, key="jm_sort")
         with st.expander("More filters"):

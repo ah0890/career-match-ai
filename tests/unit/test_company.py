@@ -163,3 +163,27 @@ def test_views_escape_content_and_link_sources():
 
 def test_candidate_without_description_is_not_called_an_organisation():
     assert not looks_like_organisation(CompanyCandidate("Q1", "X", None, "https://www.wikidata.org/wiki/Q1"))
+
+
+@pytest.mark.parametrize("name, short", [("Inseego Corp", "Inseego"), ("Example Devices Ltd.", "Example Devices"),
+                                         ("Siemens AG", "Siemens"), ("Acme, Inc.", "Acme"),
+                                         ("Example Group", "Example Group"), ("The Company", "The Company")])
+def test_without_legal_suffix(name, short):
+    from src.company.wikimedia import without_legal_suffix
+    assert without_legal_suffix(name) == short
+
+
+def test_find_companies_retries_without_legal_suffix():
+    from src.company.wikimedia import find_companies
+
+    def handler(request):
+        if request.url.params.get("search") == "Example Devices":
+            return httpx.Response(200, json={"search": [{"id": "Q901", "label": "Example Devices",
+                                                         "description": "fictional manufacturer"}]})
+        return httpx.Response(200, json={"search": []})
+
+    http = ProviderHttp(transport=httpx.MockTransport(handler), sleep=lambda s: None)
+    found, searched = find_companies("Example Devices Corp", http)
+    assert searched == "Example Devices" and [c.entity_id for c in found] == ["Q901"]
+    none, searched_full = find_companies("Unknown Name", http)
+    assert none == [] and searched_full == "Unknown Name"

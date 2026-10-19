@@ -7,7 +7,7 @@ import streamlit as st
 from config.settings import get_settings
 from src.company.models import CompanyCandidate, CompanyProfile
 from src.company.relevance import companies_in, relevance
-from src.company.wikimedia import get_company, looks_like_organisation, search_companies
+from src.company.wikimedia import find_companies, get_company, looks_like_organisation
 from src.cv.session import get_active_cv
 from src.matching.recommendations import prioritise
 from src.pages.find_jobs import OUTCOME_KEY
@@ -30,7 +30,8 @@ def _search(name: str) -> None:
     settings = get_settings()
     try:
         with st.spinner("Searching Wikidata…"):
-            st.session_state[_CANDIDATES] = (name, search_companies(name, get_http(settings)))
+            found, searched = find_companies(name, get_http(settings))
+            st.session_state[_CANDIDATES] = (searched, found, searched != " ".join(name.split()))
     except ProviderError as exc:
         st.session_state[_ERROR] = exc.message
         st.session_state.pop(_CANDIDATES, None)
@@ -75,7 +76,9 @@ def _candidates() -> None:
     entry = st.session_state.get(_CANDIDATES)
     if entry is None or st.session_state.get(_PROFILE) is not None:
         return
-    name, candidates = entry
+    name, candidates, shortened = entry
+    if shortened:
+        st.caption(f"No entry matched the full name, so “{name}” was searched instead.")
     if not candidates:
         empty_state("No matching company found", f"Wikidata has no entry matching “{name}”. Smaller or private "
                     "employers often are not listed; check the company's own website and the job listing instead.")

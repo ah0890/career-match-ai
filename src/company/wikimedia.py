@@ -49,6 +49,28 @@ def _wikidata_source(entity_id: str) -> Source:
     return Source("Wikidata", f"https://www.wikidata.org/wiki/{entity_id}", WIKIDATA_LICENCE)
 
 
+_LEGAL_SUFFIX = re.compile(
+    r"(?:[,\s]+(?:inc|incorporated|ltd|limited|llc|llp|plc|gmbh|ag|sa|sas|s\.a|bv|nv|pty|pvt|corp|corporation|co)\.?)+$",
+    re.I)
+
+
+def without_legal_suffix(name: str) -> str:
+    """ "Inseego Corp" → "Inseego"; "Example Devices Ltd." → "Example Devices". Other words are kept."""
+    return _LEGAL_SUFFIX.sub("", " ".join(name.split())).strip(" ,")
+
+
+def find_companies(name: str, http: ProviderHttp, limit: int = 7) -> tuple[list[CompanyCandidate], str]:
+    """Search by the name as written; if nothing is found, retry without a legal suffix.
+
+    Returns the candidates and the name that produced them, so the UI can say what was searched.
+    """
+    found = search_companies(name, http, limit)
+    short = without_legal_suffix(name)
+    if not found and short and short.lower() != " ".join(name.split()).lower() and len(short) >= 2:
+        return search_companies(short, http, limit), short
+    return found, " ".join(name.split())
+
+
 def search_companies(name: str, http: ProviderHttp, limit: int = 7) -> list[CompanyCandidate]:
     name = " ".join(name.split())[:120]
     if len(name) < 2:
@@ -129,7 +151,7 @@ def _qualifier_time(claim: dict[str, Any], prop: str) -> str | None:
     return None
 
 
-def _snak_value(claim: dict[str, Any]) -> tuple[str, Any] | None:
+def _snak_value(claim: dict[str, Any]) -> tuple[Any, Any] | None:
     snak = claim.get("mainsnak") or {}
     if snak.get("snaktype") != "value":
         return None
@@ -172,7 +194,7 @@ def get_company(entity_id: str, http: ProviderHttp) -> CompanyProfile:
             kind, raw = v
             as_of = _qualifier_time(claim, date_prop)  # P585 "point in time"; P580 "start time"
             if kind == "wikibase-entityid" and isinstance(raw, dict):
-                text = names.get(raw.get("id"))
+                text = names.get(str(raw.get("id")))
             elif kind == "time" and isinstance(raw, dict):
                 text = format_time(raw)
             elif kind == "quantity" and isinstance(raw, dict):

@@ -30,11 +30,11 @@ def pipeline_figure(rows: list[tuple[str, int]]) -> go.Figure:
     labels = [r[0] for r in rows][::-1]  # first stage at the top
     values = [r[1] for r in rows][::-1]
     fig = go.Figure(go.Bar(
-        x=values, y=labels, orientation="h", marker={"color": SERIES}, width=0.55,
+        x=values, y=labels, orientation="h", marker={"color": SERIES}, width=0.4,
         text=values, textposition="outside", textfont={"color": COLORS["text_primary"]},
         hovertemplate="%{y}: %{x} application(s)<extra></extra>", cliponaxis=False,
     ))
-    _layout(fig, "Applications by status", height=max(180, 46 * len(rows) + 70))
+    _layout(fig, "Applications by status", height=max(150, 40 * len(rows) + 80))
     fig.update_xaxes(visible=False)
     fig.update_yaxes(showgrid=False)
     return fig
