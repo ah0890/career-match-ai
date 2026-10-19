@@ -9,8 +9,43 @@ and decisions worth knowing).
 ## [Unreleased]
 
 ### Planned
-- Milestone 9 — recommendations: APPLY, APPLY AFTER IMPROVEMENT and DON'T PRIORITIZE, based on the
-  configured thresholds, with missing essential requirements taken into account.
+- Milestone 11 — keyword gaps and CV improvement suggestions for a chosen job, based only on what the
+  CV already contains.
+
+## Milestone 10 — Match filters, sorting and comparison — 2026-10-19 (`ac1afdd`)
+
+### Added
+- Filters on Job Matches: recommendation, minimum score, source, work arrangement, only jobs with no
+  essential gaps, limited-information jobs and expired listings (hidden by default).
+- Sorting by recommendation, score or posting date.
+- Side-by-side comparison of two or three jobs: score components, essential gaps, missing and found
+  skills, location, work arrangement, salary, posting date, freshness and source.
+- Full job description with its original line breaks.
+- Results are paged, 15 jobs per page.
+
+### Notes
+- Jobs without a posting date sort after dated ones (their age is unknown, not new), and
+  low-confidence matches always stay after the others.
+- Unknown values in the comparison are shown as "Not provided", never estimated.
+- 360 offline tests.
+
+## Milestone 9 — Recommendations — 2026-10-19 (`07cdaff`)
+
+### Added
+- APPLY, APPLY AFTER IMPROVEMENT and DON'T PRIORITIZE for every match, from the configured
+  thresholds (defaults 80 and 70).
+- Reasons for each label, and caveats for possibly stale listings, limited job information and
+  requirements to confirm yourself (for example, right to work).
+- Suggested actions built from the detected gaps, highest priority first.
+- Counts per recommendation on the Job Matches page; results ordered by recommendation, then score.
+
+### Notes
+- A job with an essential requirement the CV does not show is never marked APPLY, whatever its score.
+- Expired listings are always DON'T PRIORITIZE.
+- Actions only ask you to make explicit what you genuinely have ("if you have used any of them…");
+  a years-of-experience gap is described honestly as something editing a CV cannot change.
+- Recommendations are prioritisation guidance, not a prediction of being shortlisted or hired.
+- 351 offline tests.
 
 ## Milestone 8 — Explainable CV-to-job matching — 2026-10-19 (`5f43e24`)
 

@@ -2,7 +2,7 @@
 
 AI-powered job discovery and career assistant that searches relevant job listings, matches them against uploaded CVs, evaluates ATS compatibility, researches companies, generates tailored interview preparation plans, and tracks job applications.
 
-> **Status:** early development (Milestone 8 — explainable CV-to-job matching). CVs can be uploaded, parsed and analysed, real jobs can be searched across several permitted job sources at once, and results are ranked against your CV with the evidence behind every score. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated. See [CHANGELOG.md](CHANGELOG.md) for what changed in each milestone.
+> **Status:** early development (Milestone 10 — match filters, sorting and comparison). CVs can be uploaded, parsed and analysed, real jobs can be searched across several permitted job sources at once, and results are ranked against your CV with the evidence behind every score, a recommendation (APPLY, APPLY AFTER IMPROVEMENT or DON'T PRIORITIZE), filters and side-by-side comparison. Features that are not built yet show honest empty states; nothing in the app is simulated or fabricated. See [CHANGELOG.md](CHANGELOG.md) for what changed in each milestone.
 
 ## Planned features
 
@@ -16,7 +16,9 @@ AI-powered job discovery and career assistant that searches relevant job listing
 | Multi-source discovery (Adzuna, Himalayas, Jobicy, Remote OK, Remotive) | ✅ Done |
 | Normalisation, cross-source deduplication, freshness labels | ✅ Done |
 | Explainable CV-to-job matching | ✅ Done |
-| Recommendations (APPLY / IMPROVE / DON'T PRIORITIZE) | Planned |
+| Recommendations (APPLY / IMPROVE / DON'T PRIORITIZE) | ✅ Done |
+| Match filters, sorting and side-by-side comparison | ✅ Done |
+| Keyword gaps and CV improvement suggestions | Planned |
 | Company intelligence with source attribution | Planned |
 | Interview preparation & study plans | Planned |
 | Application tracker & dashboard | Planned |
@@ -35,7 +37,7 @@ src/cv/session.py      The active CV for the current browser session
 src/cv/parsing.py      Section, contact, date, bullet and skill parsing
 src/cv/ats.py          Transparent ATS scoring and job keyword alignment
 src/matching/skills.py Skill taxonomy and boundary-aware skill extraction
-src/matching/          Job requirement extraction and the explainable matching engine
+src/matching/          Requirement extraction, matching engine, recommendations, filtering/comparison
 src/jobs/              Job models, normalisation and local filtering
 src/providers/         Provider interface, HTTP layer (timeouts, retries, budgets, cache), registry, adapters
 src/services/          Multi-source search service and shared runtime resources
@@ -167,7 +169,7 @@ All settings use the `CAREERMATCH_` prefix and can be set in `.env` (see `.env.e
 | Education and certifications | 10% |
 | Keywords and semantic relevance | 10% |
 
-The match score will be an **estimated CV-to-job compatibility score**. It is not a probability of being shortlisted or hired, and recommendation thresholds are prioritisation guidance only.
+The match score is an **estimated CV-to-job compatibility score**. Components the job gives no information about are not assessed, and their weight is shared among the others. A job with an essential requirement your CV does not show is never marked APPLY. It is not a probability of being shortlisted or hired, and recommendation thresholds are prioritisation guidance only.
 
 ## Running tests
 
