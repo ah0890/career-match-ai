@@ -1,4 +1,4 @@
-"""Encrypted storage for email OAuth tokens.
+"""Encrypted storage for email OAuth tokens and private files (original CVs, generated PDFs).
 
 Tokens are encrypted with Fernet (AES-128-CBC + HMAC-SHA256). The key lives in the operating
 system's credential store (Windows Credential Manager, macOS Keychain, Secret Service), never in
@@ -60,6 +60,18 @@ def _load_key() -> bytes:
 
 def encrypt(token: dict) -> str:
     return Fernet(_load_key()).encrypt(json.dumps(token).encode()).decode()
+
+
+def encrypt_bytes(data: bytes) -> bytes:
+    """Files (original CVs, generated PDFs) use the same key as tokens."""
+    return Fernet(_load_key()).encrypt(data)
+
+
+def decrypt_bytes(data: bytes) -> bytes:
+    try:
+        return Fernet(_load_key()).decrypt(data)
+    except InvalidToken as exc:
+        raise VaultError("This file can no longer be read: the encryption key has changed.") from exc
 
 
 def decrypt(ciphertext: str) -> dict:

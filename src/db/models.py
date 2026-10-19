@@ -52,6 +52,10 @@ class Application(Base):
     interviews_override: Mapped[int | None] = mapped_column(Integer)  # the user's correction of the count
     offers_override: Mapped[int | None] = mapped_column(Integer)
     status_set_manually_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # CV workspace link (added by migration 2): the CV chosen for this application, and the exact
+    # revision pinned when it was submitted, so it can always be retrieved later.
+    cv_doc_id: Mapped[int | None] = mapped_column(ForeignKey("cv_docs.id", ondelete="SET NULL"))
+    cv_revision_number: Mapped[int | None] = mapped_column(Integer)
 
     history: Mapped[list[StatusChange]] = relationship(
         back_populates="application", cascade="all, delete-orphan", order_by="StatusChange.changed_at")
@@ -230,4 +234,130 @@ class CVVersion(Base):
     sha256: Mapped[str] = mapped_column(String(64), unique=True)
     text: Mapped[str] = mapped_column(Text)
     ats_score: Mapped[int | None] = mapped_column(Integer)  # snapshot when saved
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+# --- CV workspace ----------------------------------------------------------------------------
+
+class CVSource(Base):
+    """An uploaded original CV. The file is stored encrypted and never modified."""
+
+    __tablename__ = "cv_sources"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(10))  # pdf / docx
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    blob: Mapped[str | None] = mapped_column(String(80))  # encrypted file name in the CV storage folder
+    page_count: Mapped[int | None] = mapped_column(Integer)
+    extracted_text: Mapped[str] = mapped_column(Text)
+    needs_ocr: Mapped[bool] = mapped_column(Boolean, default=False)
+    style_json: Mapped[str | None] = mapped_column(Text)
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CVDoc(Base):
+    """The master CV (role 'master') or a version derived from it."""
+
+    __tablename__ = "cv_docs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    role: Mapped[str] = mapped_column(String(10), default="version")  # master / version
+    name: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(12), default="draft")  # draft / approved / archived
+    target_title: Mapped[str | None] = mapped_column(String(300))
+    target_company: Mapped[str | None] = mapped_column(String(300))
+    job_description: Mapped[str | None] = mapped_column(Text)
+    job_key: Mapped[str | None] = mapped_column(String(600), index=True)
+    source_id: Mapped[int | None] = mapped_column(ForeignKey("cv_sources.id", ondelete="SET NULL"))
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("cv_docs.id", ondelete="SET NULL"))
+    parent_revision: Mapped[int | None] = mapped_column(Integer)  # revision number of the parent it started from
+    content_json: Mapped[str] = mapped_column(Text)
+    format_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    revisions: Mapped[list[CVRevision]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, order_by="CVRevision.number")
+
+
+class CVRevision(Base):
+    """An immutable snapshot of a CV. Restoring an old one creates a new revision."""
+
+    __tablename__ = "cv_revisions"
+    __table_args__ = (UniqueConstraint("doc_id", "number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    doc_id: Mapped[int] = mapped_column(ForeignKey("cv_docs.id", ondelete="CASCADE"), index=True)
+    number: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(20))  # import / edit / review / answers / tailoring / format / restore
+    note: Mapped[str] = mapped_column(String(300))
+    content_json: Mapped[str] = mapped_column(Text)
+    format_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CVRecommendation(Base):
+    """One suggested change. Only an accepted (or user-edited) recommendation ever changes a CV."""
+
+    __tablename__ = "cv_recommendations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    doc_id: Mapped[int] = mapped_column(ForeignKey("cv_docs.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str] = mapped_column(String(20))
+    source: Mapped[str] = mapped_column(String(12))  # rules / claude / tailoring
+    category: Mapped[str] = mapped_column(String(40))
+    priority: Mapped[str] = mapped_column(String(8))  # High / Medium / Low
+    action: Mapped[str] = mapped_column(String(12))  # replace / add / reorder / advice
+    section_title: Mapped[str] = mapped_column(String(160))
+    section_id: Mapped[str | None] = mapped_column(String(20))
+    entry_id: Mapped[str | None] = mapped_column(String(20))
+    item_id: Mapped[str | None] = mapped_column(String(20))
+    original: Mapped[str] = mapped_column(Text)
+    proposed: Mapped[str] = mapped_column(Text)
+    explanation: Mapped[str] = mapped_column(Text)
+    benefit: Mapped[str] = mapped_column(String(300))
+    verification: Mapped[str | None] = mapped_column(String(500))  # what the user must confirm is true
+    warnings: Mapped[str | None] = mapped_column(String(500))  # e.g. a figure that is not in the original
+    payload_json: Mapped[str | None] = mapped_column(Text)  # e.g. a new order of item ids
+    status: Mapped[str] = mapped_column(String(10), default="pending")  # pending/accepted/rejected/edited/kept
+    final_text: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CVQuestion(Base):
+    """A targeted question about missing information. Unanswered stays unknown, never filled in."""
+
+    __tablename__ = "cv_questions"
+    __table_args__ = (UniqueConstraint("doc_id", "key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    doc_id: Mapped[int] = mapped_column(ForeignKey("cv_docs.id", ondelete="CASCADE"), index=True)
+    key: Mapped[str] = mapped_column(String(120))
+    question: Mapped[str] = mapped_column(String(400))
+    hint: Mapped[str | None] = mapped_column(String(300))
+    essential: Mapped[bool] = mapped_column(Boolean, default=False)
+    target: Mapped[str] = mapped_column(String(60))  # where an answer goes, e.g. "contact.email", "item:<id>"
+    answer: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(10), default="open")  # open / answered / skipped
+    added_to_master: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CVFile(Base):
+    """A generated PDF (stored encrypted) with the result of its validation."""
+
+    __tablename__ = "cv_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    doc_id: Mapped[int] = mapped_column(ForeignKey("cv_docs.id", ondelete="CASCADE"), index=True)
+    revision_number: Mapped[int | None] = mapped_column(Integer)
+    blob: Mapped[str] = mapped_column(String(80))
+    filename: Mapped[str] = mapped_column(String(200))
+    page_count: Mapped[int] = mapped_column(Integer)
+    validation_json: Mapped[str] = mapped_column(Text)
+    format_json: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

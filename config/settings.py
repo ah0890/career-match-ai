@@ -56,6 +56,7 @@ class Settings(BaseSettings):
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        env_ignore_empty=True,  # a blank line copied from .env.example means "use the default"
     )
 
     app_name: str = "CareerMatch AI"
@@ -90,6 +91,12 @@ class Settings(BaseSettings):
 
     # --- Application tracking ---------------------------------------------
     tracker_no_response_days: int = Field(21, ge=3, le=120)  # waiting this long counts as "No Response"
+
+    # --- CV workspace ----------------------------------------------------
+    cv_storage_dir: Path = DATA_DIR / "cv_files"  # encrypted originals and generated PDFs
+    cv_ai_enabled: bool = False  # optional Claude recommendations; needs anthropic_api_key
+    anthropic_api_key: SecretStr | None = Field(None, validation_alias="ANTHROPIC_API_KEY")
+    cv_ai_model: str = "claude-opus-5-5"
 
     # --- Email tracking (OAuth; read-only access) -------------------------
     # Credentials of *your own* OAuth app registrations — see README "Email tracking".

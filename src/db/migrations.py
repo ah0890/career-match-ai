@@ -53,8 +53,13 @@ def _m1_recruitment_tracking(conn: Connection) -> None:
         "WHERE last_activity_at IS NULL"))
 
 
+def _m2_cv_workspace(conn: Connection) -> None:
+    _add_columns(conn, "applications", {"cv_doc_id": "INTEGER", "cv_revision_number": "INTEGER"})
+
+
 MIGRATIONS: tuple[tuple[int, str, Callable[[Connection], None]], ...] = (
     (1, "recruitment tracking", _m1_recruitment_tracking),
+    (2, "cv workspace", _m2_cv_workspace),
 )
 
 

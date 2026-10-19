@@ -73,7 +73,8 @@ def test_older_databases_are_migrated_once(tmp_path):
             ("Saved", "Application Submitted"), ("Application Submitted", "Interview Scheduled")]
         assert [e.kind for e in app.events] == ["Saved", "Application Submitted", "Interview Scheduled"]
         assert app.last_activity_at.date().isoformat() == "2026-10-05"
-        assert [m.version for m in s.scalars(select(SchemaMigration))] == [1]
+        assert [m.version for m in s.scalars(select(SchemaMigration))] == [1, 2]
+        assert {"cv_doc_id", "cv_revision_number"} <= {c["name"] for c in inspect(engine).get_columns("applications")}
     assert migrate(engine) == []  # running again changes nothing
     with session_scope(url) as s:
         assert len(list(s.scalars(select(ApplicationEvent)))) == 3

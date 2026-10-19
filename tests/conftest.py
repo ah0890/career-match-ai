@@ -10,6 +10,12 @@ def _offline_isolated_settings(monkeypatch, tmp_path):
     monkeypatch.setenv("CAREERMATCH_OFFLINE_MODE", "true")
     monkeypatch.setenv("CAREERMATCH_DATABASE_URL", f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
     monkeypatch.setenv("CAREERMATCH_API_DATABASE_URL", f"sqlite:///{(tmp_path / 'api.db').as_posix()}")
+    monkeypatch.setenv("CAREERMATCH_CV_STORAGE_DIR", str(tmp_path / "cv_files"))
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("CAREERMATCH_CV_AI_ENABLED", "false")
+    # Never read the developer's own .env file: tests see only the values set here.
+    from config.settings import Settings
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
     get_settings.cache_clear()
     # Never touch the developer's real credential store: tests get a throwaway key file.
     from src.mail import vault

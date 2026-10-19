@@ -111,6 +111,12 @@ def _record_status(app: Application, status: str, when: datetime, today: date | 
     if status in APPLIED and app.applied_on is None:
         app.applied_on = today or when.date()
         app.applied_at = app.applied_at or when
+    if status in APPLIED and app.cv_doc_id and app.cv_revision_number is None:
+        from sqlalchemy.orm import object_session
+
+        from src.workspace.repository import pin_for_submission
+        if (session := object_session(app)) is not None:
+            pin_for_submission(session, app)  # keep the exact CV revision that was sent
     app.updated_at = _now()
 
 
